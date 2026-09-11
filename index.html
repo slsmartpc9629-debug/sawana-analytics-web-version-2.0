@@ -467,7 +467,8 @@
       <div class="modal-header">
         <h3>
           <i data-lucide="database" style="width: 20px; height: 20px; color: var(--color-cyan);"></i>
-          <span>Repair Data & Model Manager</span>
+          <span>Repair Data &amp; Model Manager</span>
+          <span id="editorActiveBrandBadge" class="brand-badge-pill" style="display: inline-flex; align-items: center; gap: 0.4rem; margin-left: 0.75rem; font-size: 0.82rem; padding: 0.25rem 0.75rem; border-radius: 9999px; background: rgba(6,182,212,0.15); color: var(--color-cyan); border: 1px solid rgba(6,182,212,0.3); font-weight: 600;"></span>
         </h3>
         <button class="modal-close-btn" id="closeDataEditorBtn" title="Close" aria-label="Close">
           <i data-lucide="x" style="width: 20px; height: 20px;"></i>
@@ -475,63 +476,20 @@
       </div>
 
       <div class="modal-body">
-        <!-- Brand & Model Selectors Row -->
-        <div class="editor-field-row">
-          <div class="editor-field">
-            <label for="editorBrandSelect">
-              <i data-lucide="smartphone" style="width: 14px; height: 14px; vertical-align: middle;"></i>
-              1. Select Mobile Brand
-            </label>
-            <select id="editorBrandSelect" class="editor-select">
-              <!-- Populated dynamically with 16 brands -->
-            </select>
-          </div>
+        <!-- Hidden Brand Select to preserve internal data bindings -->
+        <select id="editorBrandSelect" style="display: none;"></select>
 
-          <div class="editor-field">
+        <!-- Phone Model Selector Row -->
+        <div class="editor-field-row">
+          <div class="editor-field" style="flex: 1;">
             <label for="editorModelSelect">
               <i data-lucide="layers" style="width: 14px; height: 14px; vertical-align: middle;"></i>
-              2. Phone Model (Select Model or Leave Empty for General Brand Total)
+              Phone Model (Select Model or Leave Empty for General Brand Total)
             </label>
             <select id="editorModelSelect" class="editor-select">
               <!-- Default: -- General Brand Total (No Model Selected) -- -->
             </select>
           </div>
-        </div>
-
-        <!-- Add New Model Inline -->
-        <div class="add-model-inline-wrap">
-          <div class="add-model-inline">
-            <input 
-              type="text" 
-              id="editorNewModelInput" 
-              class="editor-input" 
-              placeholder="+ Type new model name to add (e.g. Galaxy S25 / Honor 200)..." 
-              style="flex: 1;"
-            />
-            <button class="btn-secondary" id="editorAddNewModelBtn" style="white-space: nowrap;">
-              <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i>
-              <span>Create Model</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Dynamic Editing Mode Status Banner -->
-        <div id="editorModeBanner" class="editor-mode-banner">
-          <!-- Populated dynamically: Shows whether editing General Brand Total or Specific Model -->
-        </div>
-
-        <!-- Month Management Bar (Add Month / Rolling 24 Window Info) -->
-        <div class="editor-month-mgmt-bar">
-          <div class="month-capacity-info">
-            <span class="capacity-pill" id="editorMonthCapacityPill">13 / 24 Months</span>
-            <span style="font-size: 0.78rem; color: var(--text-muted);">
-              උපරිම මාස 24 ක rolling timeline (මාස 24 ඉක්මවූ විට මුල්ම මාසය ඉවත් වේ).
-            </span>
-          </div>
-          <button type="button" class="btn-secondary" id="editorAddMonthBtn" style="padding: 0.45rem 0.85rem; font-size: 0.82rem; border-color: rgba(6,182,212,0.4); color: var(--color-cyan);">
-            <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i>
-            <span id="editorAddMonthBtnText">+ Add Next Month (Sep 2026)</span>
-          </button>
         </div>
 
         <!-- Months Data Grid -->
@@ -540,7 +498,11 @@
             <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;" id="editorMonthsGridLabel">
               Monthly Repair Counts (Aug 2025 – Aug 2026)
             </label>
-            <div style="display: flex; align-items: center; gap: 0.85rem;">
+            <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
+              <button type="button" class="btn-secondary" id="editorAddMonthBtn" style="padding: 0.35rem 0.75rem; font-size: 0.78rem; border-color: rgba(6,182,212,0.4); color: var(--color-cyan);">
+                <i data-lucide="plus-circle" style="width: 13px; height: 13px;"></i>
+                <span id="editorAddMonthBtnText">+ Add Next Month (Sep 2026)</span>
+              </button>
               <span style="font-size: 0.76rem; color: var(--text-muted);">Y-Axis range: 0 – 20</span>
               <span id="editorTotalPreview" style="font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 700; color: var(--color-cyan);">
                 0 Units Total

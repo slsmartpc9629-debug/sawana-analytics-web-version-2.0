@@ -226,11 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
       rangeAllBtn.textContent = 'All';
     }
 
-    // Modal Capacity Pill & Label
-    const capPill = document.getElementById('editorMonthCapacityPill');
-    if (capPill) {
-      capPill.textContent = `${total} / 24 Months`;
-    }
+
 
     const nextM = window.RepairData.getNextMonthLabel();
     const addBtnText = document.getElementById('editorAddMonthBtnText');
@@ -642,9 +638,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const brandSelect = document.getElementById('editorBrandSelect');
     const modelSelect = document.getElementById('editorModelSelect');
-    const newModelInput = document.getElementById('editorNewModelInput');
-    const addNewModelBtn = document.getElementById('editorAddNewModelBtn');
-    const modeBanner = document.getElementById('editorModeBanner');
     const inputsGrid = document.getElementById('editorMonthsGrid');
     const totalPreview = document.getElementById('editorTotalPreview');
 
@@ -728,46 +721,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const b = window.RepairData.brands[brandKey];
       if (!b) return;
 
-      const months = window.RepairData.months;
       const modelName = modelSelect.value;
       const inputs = inputsGrid.querySelectorAll('.editor-month-val');
 
       if (!modelName) {
         // NO model selected: General Brand Monthly Total
-        if (modeBanner) {
-          modeBanner.className = 'editor-mode-banner brand-mode';
-          modeBanner.innerHTML = `
-            <i data-lucide="info" style="width: 18px; height: 18px; flex-shrink: 0;"></i>
-            <div>
-              <strong>Mode: General Brand Total (පොදු මාසික දත්ත)</strong> &bull; 
-              Model එකක් තෝරා නොමැති බැවින්, මෙම මාස ${months.length} දත්ත <strong>${b.name}</strong> හි <em>පොදු මාසික දත්ත</em> ලෙස සටහන් වේ.
-            </div>
-          `;
-        }
         const vals = b.monthlyRepairs || [];
         inputs.forEach((inp, idx) => {
           inp.value = vals[idx] !== undefined ? vals[idx] : 0;
         });
       } else {
         // Model Selected: Specific model breakdown
-        if (modeBanner) {
-          modeBanner.className = 'editor-mode-banner model-mode';
-          modeBanner.innerHTML = `
-            <i data-lucide="check-circle-2" style="width: 18px; height: 18px; flex-shrink: 0;"></i>
-            <div>
-              <strong>Mode: Model Item Breakdown</strong> &bull; 
-              <strong>${b.name} &rsaquo; ${modelName}</strong> model එකට අදාළ මාස ${months.length} දත්ත මෙහි සටහන් වේ.
-            </div>
-          `;
-        }
         const vals = (b.models && b.models[modelName]) ? b.models[modelName] : [];
         inputs.forEach((inp, idx) => {
           inp.value = vals[idx] !== undefined ? vals[idx] : 0;
         });
-      }
-
-      if (modeBanner) {
-        renderAppIcons(modeBanner);
       }
 
       updateRunningTotal();
@@ -780,6 +748,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (active && window.RepairData.brands[active]) {
         brandSelect.value = active;
       }
+
+      const b = window.RepairData.brands[brandSelect.value];
+      const activeBadge = document.getElementById('editorActiveBrandBadge');
+      if (activeBadge && b) {
+        activeBadge.innerHTML = `
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: ${b.color || 'var(--color-cyan)'}; display: inline-block;"></span>
+          ${b.name}
+        `;
+      }
+
       populateEditorModels(brandSelect.value);
       buildMonthsInputs();
       loadCurrentSelectionIntoInputs();
@@ -831,41 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Event: Add New Model
-    if (addNewModelBtn && newModelInput) {
-      addNewModelBtn.addEventListener('click', () => {
-        const brandKey = brandSelect.value;
-        const modelName = newModelInput.value.trim();
-        if (!modelName) {
-          showToast('Please type a model name first (e.g. Galaxy S25 / Honor 200)', 'info');
-          return;
-        }
 
-        const b = window.RepairData.brands[brandKey];
-        if (!b) return;
-        if (!b.models) b.models = {};
-        if (b.models[modelName]) {
-          showToast(`Model "${modelName}" already exists!`, 'info');
-          modelSelect.value = modelName;
-          loadCurrentSelectionIntoInputs();
-          return;
-        }
-
-        // Initialize with zeroes for current active months
-        b.models[modelName] = new Array(window.RepairData.months.length).fill(0);
-        persistAllData();
-        populateEditorModels(brandKey);
-        modelSelect.value = modelName;
-        newModelInput.value = '';
-        loadCurrentSelectionIntoInputs();
-        if (typeof renderBrandsManager === 'function') {
-          const sInp = document.getElementById('brandManagerSearchInput');
-          renderBrandsManager(sInp ? sInp.value : '');
-        }
-        renderBrandModelsPanel(brandKey);
-        logSystemUpdate(`Model Created: ${modelName}`, `Added new model under ${b.name} from editor.`);
-      });
-    }
 
     // Save Changes Action
     saveBtn.addEventListener('click', () => {

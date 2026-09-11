@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1329"/>
+      <stop offset="100%" stop-color="#060913"/>
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  
+  <!-- Background with rounded corners -->
+  <rect width="512" height="512" rx="110" fill="url(#bgGrad)" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
+  
+  <!-- Glowing ambient circle -->
+  <circle cx="256" cy="256" r="170" fill="#3b82f6" opacity="0.12" filter="url(#glow)"/>
+  
+  <!-- Phone Outer Frame -->
+  <rect x="146" y="86" width="220" height="340" rx="36" fill="none" stroke="url(#blueGrad)" stroke-width="14" filter="url(#glow)"/>
+  
+  <!-- Screen Area -->
+  <rect x="166" y="126" width="180" height="250" rx="16" fill="rgba(15, 23, 42, 0.85)" stroke="rgba(255,255,255,0.06)" stroke-width="2"/>
+  
+  <!-- Speaker / Camera Notch -->
+  <line x1="226" y1="106" x2="286" y2="106" stroke="#64748b" stroke-width="6" stroke-linecap="round"/>
+  
+  <!-- Home Indicator -->
+  <circle cx="256" cy="402" r="10" fill="url(#blueGrad)"/>
+  
+  <!-- Sawana Telemetry Pulse / Wrench Logo inside Screen -->
+  <path d="M196 260 L226 220 L256 270 L286 210 L316 260" fill="none" stroke="#06b6d4" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+  <circle cx="226" cy="220" r="7" fill="#3b82f6"/>
+  <circle cx="256" cy="270" r="7" fill="#10b981"/>
+  <circle cx="286" cy="210" r="7" fill="#6366f1"/>
+</svg>

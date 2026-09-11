@@ -1,0 +1,17 @@
+{
+  "name": "modern-analytics-dashboard",
+  "version": "1.0.0",
+  "description": "A state-of-the-art, high-performance web analytics dashboard built with modern web standards, featuring ultra-sleek dark/light theme switching, glassmorphic UI components, animated KPI counters, dynamic ApexCharts visualizations, live table filtering, and CSV export.",
+  "main": "generate_icons.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "apexcharts": "^7.1.0",
+    "lucide": "^1.44.0"
+  }
+}

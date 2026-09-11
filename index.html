@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sawana Care — Mobile Repair Analytics Platform</title>
+  <meta name="description" content="Sawana Mobile Care repair analytics platform tracking monthly repair volumes, phone models, fault diagnostics, and brand market trends from August 2025 to August 2026 (Max 24 Months).">
+  
+  <!-- PWA Web App Manifest & Mobile Metas -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#3b82f6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sawana Care">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <!-- Favicon SVG -->
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  
+  <!-- Master Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- Local Self-Contained Core Libraries (Zero External CDN Dependency) -->
+  <script src="js/libs/apexcharts.min.js"></script>
+  <script src="js/libs/lucide.min.js"></script>
+  <script src="js/icons-fallback.js"></script>
+</head>
+<body>
+
+  <!-- =========================================================================
+       SIDEBAR NAVIGATION
+       ========================================================================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="#" class="brand-logo" id="brandLogo">
+        <div class="logo-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);">
+          <i data-lucide="smartphone" style="width: 22px; height: 22px;"></i>
+        </div>
+        <span class="logo-text">Sawana Care</span>
+      </a>
+      <button class="collapse-btn" id="collapseSidebarBtn" title="Toggle Sidebar" aria-label="Toggle Sidebar">
+        <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+      </button>
+    </div>
+
+    <nav class="sidebar-menu">
+      <span class="menu-label">Analytics Hub</span>
+      <a href="#overview" class="nav-link active" id="navOverview">
+        <i data-lucide="layout-dashboard" class="nav-icon"></i>
+        <span class="nav-text">Repair Overview</span>
+      </a>
+      <a href="#brands" class="nav-link" id="navBrands">
+        <i data-lucide="cpu" class="nav-icon"></i>
+        <span class="nav-text">Brands & Models</span>
+      </a>
+      <a href="#settings" class="nav-link" id="navSettings">
+        <i data-lucide="settings" class="nav-icon"></i>
+        <span class="nav-text">Settings</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="system-status-card">
+        <div class="status-header">
+          <span>Workshop Capacity</span>
+          <strong>84%</strong>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-fill" style="width: 84%; background: var(--gradient-primary);"></div>
+        </div>
+        <div style="font-size: 0.72rem; color: var(--text-muted);">
+          14 Active Repairs in Benches
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- =========================================================================
+       MAIN WRAPPER & HEADER
+       ========================================================================= -->
+  <div class="main-wrapper">
+    <!-- Top Sticky Header -->
+    <header class="top-header">
+      <div class="header-left">
+        <!-- Interactive Brand Search & Dropdown Component -->
+        <div class="brand-search-wrapper" id="brandSearchWrapper">
+          <div class="brand-search-input-wrap">
+            <i data-lucide="search" class="brand-search-icon"></i>
+            <input 
+              type="text" 
+              class="brand-search-input" 
+              id="brandSearchInput" 
+              placeholder="Search or Select Mobile Brand..." 
+              autocomplete="off"
+            />
+            <button type="button" id="brandSearchClearBtn" class="brand-search-clear-btn" style="display: none;" title="Clear brand filter (Show All Brands)">
+              <i data-lucide="x" style="width: 13px; height: 13px;"></i>
+            </button>
+          </div>
+          <!-- Automatic Brand Dropdown Menu (Honor, ZTE, Samsung, Redmi, etc.) -->
+          <div class="brand-dropdown-menu" id="brandDropdownMenu">
+            <!-- Populated dynamically with all 16 brands -->
+          </div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Version Badge Pill -->
+        <div class="version-pill" id="headerVersionPill" title="Sawana Platform Version">
+          <span class="version-dot"></span>
+          <span id="appVersionText">v1.6</span>
+        </div>
+
+        <!-- Dark/Light Theme Switcher -->
+        <button class="icon-btn" id="themeToggleBtn" title="Toggle Theme" aria-label="Toggle Theme">
+          <i data-lucide="sun" id="themeToggleIcon" style="width: 18px; height: 18px;"></i>
+        </button>
+
+        <!-- Notification Bell & Dropdown -->
+        <div style="position: relative;">
+          <button class="icon-btn" id="notificationBtn" title="Notifications" aria-label="Notifications">
+            <i data-lucide="bell" style="width: 18px; height: 18px;"></i>
+            <span class="notification-badge"></span>
+          </button>
+          <div class="dropdown-menu" id="notificationsDropdown" style="width: 320px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border-color);">
+              <div style="display: flex; align-items: center; gap: 0.45rem;">
+                <strong style="font-size: 0.85rem;">System Activity & Updates</strong>
+                <span id="notifDropdownVersionPill" class="version-tag">v1.6</span>
+              </div>
+              <span id="clearNotificationsBtn" style="font-size: 0.72rem; color: var(--color-primary); cursor: pointer;">Clear all</span>
+            </div>
+            <div id="notificationsListContainer" style="max-height: 280px; overflow-y: auto;">
+              <!-- Populated dynamically by dashboard.js -->
+            </div>
+          </div>
+        </div>
+
+        <!-- User Profile Pill -->
+        <div class="profile-btn" id="userProfileBtn">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces" alt="Lead Service Manager" class="avatar-img" />
+          <div class="profile-info">
+            <div class="profile-name">Ruwan M.</div>
+            <div class="profile-role">Lead Technician</div>
+          </div>
+          <i data-lucide="chevron-down" style="width: 14px; height: 14px; color: var(--text-muted); margin-left: 0.25rem;"></i>
+        </div>
+      </div>
+    </header>
+
+    <!-- =======================================================================
+         DASHBOARD BODY CONTENT
+         ======================================================================= -->
+    <main class="dashboard-content">
+      <!-- VIEW 1: REPAIR OVERVIEW TAB -->
+      <div id="viewOverview" class="tab-view active">
+        <!-- Title & Controls -->
+        <section class="dash-control-bar">
+        <div class="dash-heading">
+          <h1>
+            Sawana Mobile Repair Analytics
+            <span id="timelineHeaderBadge" style="font-size: 0.78rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: var(--radius-full); background: rgba(59, 130, 246, 0.15); color: #60a5fa; vertical-align: middle;">Aug 2025 – Aug 2026 (13 Months &bull; Max 24)</span>
+          </h1>
+          <p>Select any brand from the search bar to inspect its monthly repair ruler curve and itemized model breakdown.</p>
+        </div>
+
+        <div class="control-actions">
+          <!-- Toggle KPI Summary Cards Switch -->
+          <div class="kpi-toggle-wrap" title="Show or Hide KPI Summary Cards">
+            <span class="kpi-toggle-label">
+              <i data-lucide="layout-grid" style="width: 14px; height: 14px;"></i>
+              <span>Metric Cards</span>
+            </span>
+            <label class="switch" title="Toggle Metric Cards">
+              <input type="checkbox" id="toggleKpiCardsSwitch" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <!-- Export Report CTA -->
+          <button class="btn-primary" id="exportReportBtn">
+            <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+            <span>Export Brand Items CSV</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- =======================================================================
+           ROW 1: KEY PERFORMANCE INDICATOR CARDS (4 Columns)
+           ======================================================================= -->
+      <section class="kpi-grid" id="overviewKpiGrid">
+        <!-- Card 1: Total Repairs -->
+        <div class="kpi-card" id="cardTotalRepairs">
+          <div class="kpi-top">
+            <span class="kpi-title">Total Repairs Logged</span>
+            <div class="kpi-icon-pill pill-indigo">
+              <i data-lucide="wrench" style="width: 20px; height: 20px;"></i>
+            </div>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-value-wrap">
+              <span class="kpi-value">2,142</span>
+              <span class="kpi-badge badge-positive">
+                <i data-lucide="trending-up" style="width: 14px; height: 14px;"></i> +16.4% YoY
+              </span>
+            </div>
+            <div class="kpi-sparkline" id="sparklineTotal"></div>
+          </div>
+        </div>
+
+        <!-- Card 2: Selected Brand Volume -->
+        <div class="kpi-card" id="cardTopBrand">
+          <div class="kpi-top">
+            <span class="kpi-title">Selected Brand Volume</span>
+            <div class="kpi-icon-pill pill-cyan">
+              <i data-lucide="award" style="width: 20px; height: 20px;"></i>
+            </div>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-value-wrap">
+              <span class="kpi-value" style="font-size: 1.85rem;">SAMSUNG</span>
+              <span class="kpi-badge badge-positive" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;">
+                248 Total Units
+              </span>
+            </div>
+            <div class="kpi-sparkline" id="sparklineTopBrand"></div>
+          </div>
+        </div>
+
+        <!-- Card 3: Active In Workshop -->
+        <div class="kpi-card" id="cardWorkshop">
+          <div class="kpi-top">
+            <span class="kpi-title">Active in Workshop</span>
+            <div class="kpi-icon-pill pill-emerald">
+              <i data-lucide="activity" style="width: 20px; height: 20px;"></i>
+            </div>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-value-wrap">
+              <span class="kpi-value">14 Devices</span>
+              <span class="kpi-badge badge-positive">
+                <i data-lucide="check" style="width: 14px; height: 14px;"></i> In Bench Queue
+              </span>
+            </div>
+            <div class="kpi-sparkline" id="sparklineWorkshop"></div>
+          </div>
+        </div>
+
+        <!-- Card 4: Fix Rate -->
+        <div class="kpi-card" id="cardRate">
+          <div class="kpi-top">
+            <span class="kpi-title">First-Pass Fix Rate</span>
+            <div class="kpi-icon-pill pill-purple">
+              <i data-lucide="shield-check" style="width: 20px; height: 20px;"></i>
+            </div>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-value-wrap">
+              <span class="kpi-value">97.4%</span>
+              <span class="kpi-badge badge-positive">
+                <i data-lucide="trending-up" style="width: 14px; height: 14px;"></i> +1.2%
+              </span>
+            </div>
+            <div class="kpi-sparkline" id="sparklineRate"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =======================================================================
+           ROW 2: PRIMARY REPAIR TIMELINE (Clean Brand Ruler View)
+           ======================================================================= -->
+      <section class="chart-card" id="primaryTimelineChartCard">
+        <div class="chart-header">
+          <div class="chart-title-group">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+              <h3 id="timelineChartTitle">SAMSUNG Monthly Repair Trend</h3>
+              <span id="activeBrandBadge" class="active-brand-indicator" style="background: rgba(59, 130, 246, 0.2); color: #3b82f6;">
+                SAMSUNG Focused
+              </span>
+            </div>
+          </div>
+
+          <!-- Timeline Controls: Time Range Selection (Single Brand Ruler Only) -->
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <!-- Range Selection (All Months, 12 Months, 6 Months) -->
+            <div class="time-range-group" id="timelineRangeControls" title="Time Horizon">
+              <button class="range-btn active" id="rangeBtnAll" data-range="ALL">All (13M)</button>
+              <button class="range-btn" id="rangeBtn12" data-range="12">12 Months</button>
+              <button class="range-btn" id="rangeBtn6" data-range="6">6 Months</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary Timeline ApexChart Canvas -->
+        <div id="repairTimelineChart" class="chart-canvas-container" style="min-height: 400px;"></div>
+      </section>
+
+      <!-- =======================================================================
+           ROW 3: SECONDARY CHARTS (Brand Share & Selected Brand Phone Models Breakdown)
+           ======================================================================= -->
+      <section class="charts-main-grid">
+        <!-- Brand Market Share Donut -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title-group">
+              <h3>Repair Market Share by Brand</h3>
+              <p>Total unit distribution across all 16 brands over the active timeline.</p>
+            </div>
+          </div>
+          <div id="brandShareChart" class="chart-canvas-container"></div>
+        </div>
+
+        <!-- Selected Brand Phone Models & Unit Distribution Card -->
+        <div class="chart-card" id="brandModelsBreakdownCard">
+          <div class="chart-header">
+            <div class="chart-title-group">
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <h3 id="brandModelsPanelTitle">SAMSUNG Phone Models</h3>
+                <span id="brandModelsPanelBadge" class="brand-tag">SAMSUNG</span>
+              </div>
+              <p id="brandModelsPanelSubtitle">Itemized repaired units and share per phone model for the selected brand.</p>
+            </div>
+          </div>
+          <div class="device-list" id="brandModelsList" style="margin-top: 1rem;">
+            <!-- Populated dynamically by dashboard.js for selected brand -->
+          </div>
+        </div>
+      </section>
+
+      <!-- =======================================================================
+           ROW 4: FAULT BAR CHART
+           ======================================================================= -->
+      <section class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title-group">
+            <h3>Fault Volume Distribution</h3>
+            <p>Total repair job count categorized by failure classification.</p>
+          </div>
+        </div>
+        <div id="faultCategoryChart" class="chart-canvas-container" style="min-height: 290px;"></div>
+      </section>
+
+      <!-- =======================================================================
+           ROW 5: BRAND MONTHLY REPAIR ITEMS & MODEL DISTRIBUTION TABLE
+           ======================================================================= -->
+      <section class="table-card">
+        <div class="table-header-bar">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <h3 id="brandMonthlyTableTitle" style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700;">
+                SAMSUNG — Monthly Repaired Items Breakdown
+              </h3>
+              <span id="tableBrandBadge" class="brand-tag">SAMSUNG</span>
+            </div>
+            <p id="brandMonthlyTableSubtitle" style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">
+              Month-by-month repair item counts and model distribution for SAMSUNG (August 2025 – August 2026).
+            </p>
+          </div>
+        </div>
+
+        <!-- Model Summary Cards for Selected Brand -->
+        <div class="model-summary-cards-row" id="brandModelsSummaryRow">
+          <!-- Populated dynamically by dashboard.js for selected brand -->
+        </div>
+
+        <!-- Month-by-Month Detailed Items Table -->
+        <div class="table-container">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th>Timeline Month</th>
+                <th>Total Brand Repairs</th>
+                <th>Repaired Phone Models & Item Counts</th>
+                <th>Peak Repaired Model</th>
+                <th>MoM Trend</th>
+              </tr>
+            </thead>
+            <tbody id="brandMonthlyTableBody">
+              <!-- Populated dynamically by dashboard.js for selected brand -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+      </div><!-- /#viewOverview -->
+
+      <!-- =======================================================================
+           VIEW 2: BRANDS & MODELS MANAGEMENT HUB
+           ======================================================================= -->
+      <div id="viewBrands" class="tab-view" style="display: none;">
+        <!-- Control Bar for Brands & Models -->
+        <section class="dash-control-bar">
+          <div class="dash-heading">
+            <h1>
+              Brands & Mobile Models Management
+              <span id="brandsHubCountBadge" style="font-size: 0.78rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: var(--radius-full); background: rgba(59, 130, 246, 0.15); color: #60a5fa; vertical-align: middle;">16 Brands &bull; Active Models</span>
+            </h1>
+            <p>Manage all mobile repair brands, create and manage phone models under each brand, and link monthly repair items.</p>
+          </div>
+
+          <div class="control-actions">
+            <!-- Search / Filter input -->
+            <div class="brand-mgmt-search-box">
+              <i data-lucide="search" style="width: 15px; height: 15px; color: var(--text-muted);"></i>
+              <input type="text" id="brandManagerSearchInput" placeholder="Filter brand or model..." autocomplete="off">
+            </div>
+
+            <!-- Add New Brand Button -->
+            <button class="btn-primary" id="openAddBrandModalBtn">
+              <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+              <span>+ Add New Brand</span>
+            </button>
+
+            <!-- Edit Repair Data Shortcut -->
+            <button class="btn-secondary" id="openEditorFromBrandsBtn" style="border-color: rgba(99, 102, 241, 0.4); color: #818cf8;">
+              <i data-lucide="database" style="width: 16px; height: 16px;"></i>
+              <span>Edit Repair Data</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Brands & Models Grid -->
+        <div class="brands-manager-grid" id="brandsManagerGrid">
+          <!-- Populated dynamically by dashboard.js -->
+        </div>
+      </div><!-- /#viewBrands -->
+
+      <!-- =======================================================================
+           VIEW 3: SETTINGS & WORKSHOP PREFERENCES
+           ======================================================================= -->
+      <div id="viewSettings" class="tab-view" style="display: none;">
+        <section class="dash-control-bar">
+          <div class="dash-heading">
+            <h1>Platform Settings & Preferences</h1>
+            <p>Configure workshop management preferences, brand customization, and system controls.</p>
+          </div>
+        </section>
+
+        <div class="settings-grid">
+          <!-- Card 1: Brand & Model Management Preferences -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <i data-lucide="sliders" style="width: 20px; height: 20px; color: var(--color-primary);"></i>
+              <h3>Brand & Catalog Management</h3>
+            </div>
+            
+            <div class="settings-item-row">
+              <div class="settings-item-info">
+                <div class="settings-item-title">Edit Brand Name (Allow Brand Renaming)</div>
+                <div class="settings-item-desc">
+                  When enabled, an edit (pencil) icon appears next to each mobile brand in the Brands & Models hub allowing you to rename existing brands.
+                </div>
+              </div>
+              <div class="settings-item-action">
+                <label class="switch" title="Toggle Brand Renaming">
+                  <input type="checkbox" id="settingAllowBrandRename">
+                  <span class="slider round"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="settings-item-row">
+              <div class="settings-item-info">
+                <div class="settings-item-title">Show Overview Metric KPI Cards</div>
+                <div class="settings-item-desc">
+                  Toggle display of the 4 KPI summary cards in Repair Overview. When turned off, the Brands Overview chart automatically expands to a spacious full view.
+                </div>
+              </div>
+              <div class="settings-item-action">
+                <label class="switch" title="Toggle Overview Metric Cards">
+                  <input type="checkbox" id="settingShowKpiCards" checked>
+                  <span class="slider round"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: System Version & Data Info -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <i data-lucide="info" style="width: 20px; height: 20px; color: var(--color-cyan);"></i>
+              <h3>Platform Details & Maintenance</h3>
+            </div>
+
+            <div class="settings-item-row">
+              <div class="settings-item-info">
+                <div class="settings-item-title">Platform Version</div>
+                <div class="settings-item-desc">Codebase release build tracking software features and system updates.</div>
+              </div>
+              <div class="settings-item-action">
+                <span class="version-tag" id="settingsVersionBadge" style="font-size: 0.85rem; padding: 0.25rem 0.65rem;">v1.6</span>
+              </div>
+            </div>
+
+            <div class="settings-item-row">
+              <div class="settings-item-info">
+                <div class="settings-item-title">Timeline Rolling Window</div>
+                <div class="settings-item-desc">Current active range and maximum capacity ceiling.</div>
+              </div>
+              <div class="settings-item-action">
+                <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;" id="settingsTimelineInfo">13 / 24 Months</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /#viewSettings -->
+    </main>
+  </div>
+
+  <!-- =========================================================================
+       IN-SYSTEM REPAIR DATA & MODEL EDITOR MODAL
+       ========================================================================= -->
+  <div class="modal-overlay" id="dataEditorModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>
+          <i data-lucide="database" style="width: 20px; height: 20px; color: var(--color-cyan);"></i>
+          <span>Repair Data & Model Manager</span>
+        </h3>
+        <button class="modal-close-btn" id="closeDataEditorBtn" title="Close" aria-label="Close">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Brand & Model Selectors Row -->
+        <div class="editor-field-row">
+          <div class="editor-field">
+            <label for="editorBrandSelect">
+              <i data-lucide="smartphone" style="width: 14px; height: 14px; vertical-align: middle;"></i>
+              1. Select Mobile Brand
+            </label>
+            <select id="editorBrandSelect" class="editor-select">
+              <!-- Populated dynamically with 16 brands -->
+            </select>
+          </div>
+
+          <div class="editor-field">
+            <label for="editorModelSelect">
+              <i data-lucide="layers" style="width: 14px; height: 14px; vertical-align: middle;"></i>
+              2. Phone Model (Select Model or Leave Empty for General Brand Total)
+            </label>
+            <select id="editorModelSelect" class="editor-select">
+              <!-- Default: -- General Brand Total (No Model Selected) -- -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Add New Model Inline -->
+        <div class="add-model-inline-wrap">
+          <div class="add-model-inline">
+            <input 
+              type="text" 
+              id="editorNewModelInput" 
+              class="editor-input" 
+              placeholder="+ Type new model name to add (e.g. Galaxy S25 / Honor 200)..." 
+              style="flex: 1;"
+            />
+            <button class="btn-secondary" id="editorAddNewModelBtn" style="white-space: nowrap;">
+              <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i>
+              <span>Create Model</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Editing Mode Status Banner -->
+        <div id="editorModeBanner" class="editor-mode-banner">
+          <!-- Populated dynamically: Shows whether editing General Brand Total or Specific Model -->
+        </div>
+
+        <!-- Month Management Bar (Add Month / Rolling 24 Window Info) -->
+        <div class="editor-month-mgmt-bar">
+          <div class="month-capacity-info">
+            <span class="capacity-pill" id="editorMonthCapacityPill">13 / 24 Months</span>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">
+              උපරිම මාස 24 ක rolling timeline (මාස 24 ඉක්මවූ විට මුල්ම මාසය ඉවත් වේ).
+            </span>
+          </div>
+          <button type="button" class="btn-secondary" id="editorAddMonthBtn" style="padding: 0.45rem 0.85rem; font-size: 0.82rem; border-color: rgba(6,182,212,0.4); color: var(--color-cyan);">
+            <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i>
+            <span id="editorAddMonthBtnText">+ Add Next Month (Sep 2026)</span>
+          </button>
+        </div>
+
+        <!-- Months Data Grid -->
+        <div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem;">
+            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;" id="editorMonthsGridLabel">
+              Monthly Repair Counts (Aug 2025 – Aug 2026)
+            </label>
+            <div style="display: flex; align-items: center; gap: 0.85rem;">
+              <span style="font-size: 0.76rem; color: var(--text-muted);">Y-Axis range: 0 – 20</span>
+              <span id="editorTotalPreview" style="font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 700; color: var(--color-cyan);">
+                0 Units Total
+              </span>
+            </div>
+          </div>
+          <div class="editor-months-grid" id="editorMonthsGrid">
+            <!-- Dynamic Month Input Boxes -->
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-primary" id="saveDataEditorBtn">
+          <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+          <span>Save & Apply Changes</span>
+        </button>
+        <button class="btn-secondary" id="cancelDataEditorBtn">Cancel</button>
+        <button class="btn-chip-action" id="resetDataDefaultsBtn" style="margin-left: auto; color: var(--color-rose); border-color: rgba(244,63,94,0.3);">
+          Reset to System Defaults
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       ADD NEW MOBILE BRAND MODAL
+       ========================================================================= -->
+  <div class="modal-overlay" id="addBrandModal">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>
+          <i data-lucide="plus-circle" style="width: 20px; height: 20px; color: var(--color-primary);"></i>
+          <span>Add New Mobile Brand</span>
+        </h3>
+        <button class="modal-close-btn" id="closeAddBrandModalBtn" title="Close" aria-label="Close">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; flex-direction: column; gap: 1.1rem;">
+          <div class="editor-field">
+            <label for="newBrandNameInput">
+              <i data-lucide="smartphone" style="width: 14px; height: 14px; vertical-align: middle;"></i>
+              Mobile Brand Name
+            </label>
+            <input type="text" id="newBrandNameInput" class="editor-input" placeholder="e.g. Google Pixel / Nothing / Realme..." autocomplete="off">
+          </div>
+          <div class="editor-field">
+            <label for="newBrandColorInput">
+              <i data-lucide="palette" style="width: 14px; height: 14px; vertical-align: middle;"></i>
+              Brand Color Theme
+            </label>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <input type="color" id="newBrandColorInput" value="#6366f1" style="width: 44px; height: 38px; border: none; border-radius: var(--radius-sm); cursor: pointer; background: transparent;">
+              <span id="newBrandColorHex" style="font-family: monospace; font-size: 0.85rem; color: var(--text-secondary);">#6366f1</span>
+            </div>
+          </div>
+          <div class="editor-field">
+            <label for="newBrandInitialModelInput">
+              <i data-lucide="layers" style="width: 14px; height: 14px; vertical-align: middle;"></i>
+              First Phone Model (Optional)
+            </label>
+            <input type="text" id="newBrandInitialModelInput" class="editor-input" placeholder="e.g. Pixel 8 Pro (optional)" autocomplete="off">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" id="saveNewBrandBtn">
+          <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+          <span>Add Brand</span>
+        </button>
+        <button class="btn-secondary" id="cancelNewBrandBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Firebase App & Firestore SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

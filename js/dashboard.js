@@ -1020,7 +1020,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const newBrandNameInput = document.getElementById('newBrandNameInput');
     const newBrandColorInput = document.getElementById('newBrandColorInput');
     const newBrandColorHex = document.getElementById('newBrandColorHex');
-    const newBrandInitialModelInput = document.getElementById('newBrandInitialModelInput');
     const openEditorFromBrandsBtn = document.getElementById('openEditorFromBrandsBtn');
 
     if (openEditorFromBrandsBtn) {
@@ -1038,10 +1037,63 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // Generate a random color that is visually distinct from all existing brand colors
+    function getUniqueRandomColor() {
+      const existingColors = Object.values(window.RepairData.brands).map(b => b.color || '#000000');
+
+      function hexToHsl(hex) {
+        let r = parseInt(hex.slice(1,3),16)/255;
+        let g = parseInt(hex.slice(3,5),16)/255;
+        let b = parseInt(hex.slice(5,7),16)/255;
+        const max = Math.max(r,g,b), min = Math.min(r,g,b);
+        let h, s, l = (max+min)/2;
+        if (max === min) { h = s = 0; }
+        else {
+          const d = max - min;
+          s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+          switch(max) {
+            case r: h = ((g-b)/d + (g<b?6:0))/6; break;
+            case g: h = ((b-r)/d + 2)/6; break;
+            case b: h = ((r-g)/d + 4)/6; break;
+          }
+        }
+        return [h*360, s*100, l*100];
+      }
+
+      function hslToHex(h, s, l) {
+        s /= 100; l /= 100;
+        const k = n => (n + h/30) % 12;
+        const a = s * Math.min(l, 1-l);
+        const f = n => l - a * Math.max(-1, Math.min(k(n)-3, Math.min(9-k(n), 1)));
+        const toH = x => Math.round(x*255).toString(16).padStart(2,'0');
+        return `#${toH(f(0))}${toH(f(8))}${toH(f(4))}`;
+      }
+
+      function hueDiff(h1, h2) {
+        const d = Math.abs(h1 - h2);
+        return Math.min(d, 360 - d);
+      }
+
+      const existingHues = existingColors.map(c => hexToHsl(c)[0]);
+      let bestColor = null, bestDiff = -1;
+
+      for (let attempt = 0; attempt < 40; attempt++) {
+        const h = Math.random() * 360;
+        const s = 55 + Math.random() * 30; // 55–85%
+        const l = 48 + Math.random() * 12; // 48–60%
+        const minDiff = existingHues.reduce((acc, eh) => Math.min(acc, hueDiff(h, eh)), 360);
+        if (minDiff > bestDiff) { bestDiff = minDiff; bestColor = hslToHex(h, s, l); }
+        if (minDiff > 30) break; // good enough
+      }
+      return bestColor || '#6366f1';
+    }
+
     // Open/Close Add Brand Modal
     function openAddBrandModal() {
       if (newBrandNameInput) newBrandNameInput.value = '';
-      if (newBrandInitialModelInput) newBrandInitialModelInput.value = '';
+      const randomColor = getUniqueRandomColor();
+      if (newBrandColorInput) newBrandColorInput.value = randomColor;
+      if (newBrandColorHex) newBrandColorHex.textContent = randomColor;
       if (addBrandModal) addBrandModal.classList.add('show');
     }
 
@@ -1069,7 +1121,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const brandColor = newBrandColorInput ? newBrandColorInput.value : '#6366f1';
-        const initialModel = newBrandInitialModelInput ? newBrandInitialModelInput.value.trim() : '';
         const monthsCount = window.RepairData.months.length;
 
         const newBrandObj = {
@@ -1078,10 +1129,6 @@ document.addEventListener('DOMContentLoaded', () => {
           monthlyRepairs: new Array(monthsCount).fill(0),
           models: {}
         };
-
-        if (initialModel) {
-          newBrandObj.models[initialModel] = new Array(monthsCount).fill(0);
-        }
 
         window.RepairData.brands[brandKey] = newBrandObj;
         persistAllData();

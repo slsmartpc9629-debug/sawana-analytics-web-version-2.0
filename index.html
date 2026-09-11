@@ -165,17 +165,6 @@
         </div>
 
         <div class="control-actions">
-          <!-- Toggle KPI Summary Cards Switch -->
-          <div class="kpi-toggle-wrap" title="Show or Hide KPI Summary Cards">
-            <span class="kpi-toggle-label">
-              <i data-lucide="layout-grid" style="width: 14px; height: 14px;"></i>
-              <span>Metric Cards</span>
-            </span>
-            <label class="switch" title="Toggle Metric Cards">
-              <input type="checkbox" id="toggleKpiCardsSwitch" checked>
-              <span class="slider round"></span>
-            </label>
-          </div>
 
           <!-- Export Report CTA -->
           <button class="btn-primary" id="exportReportBtn">
@@ -389,12 +378,12 @@
       <div id="viewBrands" class="tab-view" style="display: none;">
         <!-- Control Bar for Brands & Models -->
         <section class="dash-control-bar">
-          <div class="dash-heading">
-            <h1>
-              Brands & Mobile Models Management
-              <span id="brandsHubCountBadge" style="font-size: 0.78rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: var(--radius-full); background: rgba(59, 130, 246, 0.15); color: #60a5fa; vertical-align: middle;">16 Brands &bull; Active Models</span>
-            </h1>
-            <p>Manage all mobile repair brands, create and manage phone models under each brand, and link monthly repair items.</p>
+          <div class="dash-heading" style="flex-direction: row; align-items: center; gap: 1rem; flex-wrap: wrap;">
+            <h1 style="margin: 0;">Brands &amp; Mobile Models Management</h1>
+            <button class="btn-primary" id="openAddBrandModalBtn" style="margin-left: auto; flex-shrink: 0;">
+              <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+              <span>+ Add New Brand</span>
+            </button>
           </div>
 
           <div class="control-actions">
@@ -403,18 +392,6 @@
               <i data-lucide="search" style="width: 15px; height: 15px; color: var(--text-muted);"></i>
               <input type="text" id="brandManagerSearchInput" placeholder="Filter brand or model..." autocomplete="off">
             </div>
-
-            <!-- Add New Brand Button -->
-            <button class="btn-primary" id="openAddBrandModalBtn">
-              <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
-              <span>+ Add New Brand</span>
-            </button>
-
-            <!-- Edit Repair Data Shortcut -->
-            <button class="btn-secondary" id="openEditorFromBrandsBtn" style="border-color: rgba(99, 102, 241, 0.4); color: #818cf8;">
-              <i data-lucide="database" style="width: 16px; height: 16px;"></i>
-              <span>Edit Repair Data</span>
-            </button>
           </div>
         </section>
 

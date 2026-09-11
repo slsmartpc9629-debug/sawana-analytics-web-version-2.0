@@ -124,7 +124,7 @@ body {
   display: flex;
   flex-direction: column;
   z-index: 100;
-  transition: width var(--transition-normal);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(12px);
 }
 
@@ -170,6 +170,7 @@ body {
   letter-spacing: -0.02em;
   background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   white-space: nowrap;
 }
@@ -177,6 +178,7 @@ body {
 [data-theme="light"] .logo-text {
   background: linear-gradient(135deg, #0f172a 0%, #475569 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -322,11 +324,12 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  transition: margin-left var(--transition-normal);
+  transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar.collapsed ~ .main-wrapper {
   margin-left: var(--sidebar-collapsed-width);
+  transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .top-header {

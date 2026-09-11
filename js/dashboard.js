@@ -1251,16 +1251,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </span>
           </div>
 
-          <div class="brand-mgmt-stats-row">
-            <span>Registered Models: <strong>${totalModels}</strong></span>
-            <span>Active Timeline: <strong>${months.length} Months</strong></span>
-          </div>
-
           <div>
-            <div class="brand-mgmt-models-label" style="margin-bottom: 0.4rem;">
-              <span>Phone Models (${totalModels})</span>
-              <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 500;">Units count in badge</span>
-            </div>
             <div class="brand-mgmt-models-container">
               ${modelsHtml}
             </div>
@@ -1551,11 +1542,33 @@ document.addEventListener('DOMContentLoaded', () => {
       themeBtn.addEventListener('click', toggleTheme);
     }
 
-    // Sidebar Toggle
+    // Sidebar Toggle + Auto-Collapse
     const sidebar = document.getElementById('sidebar');
     const collapseBtn = document.getElementById('collapseSidebarBtn');
+    let sidebarCollapseTimer = null;
+
+    function scheduleSidebarCollapse() {
+      clearTimeout(sidebarCollapseTimer);
+      sidebarCollapseTimer = setTimeout(() => {
+        if (sidebar) sidebar.classList.add('collapsed');
+      }, 3000);
+    }
+
+    function cancelSidebarCollapse() {
+      clearTimeout(sidebarCollapseTimer);
+      if (sidebar) sidebar.classList.remove('collapsed');
+    }
+
+    if (sidebar) {
+      sidebar.addEventListener('mouseenter', cancelSidebarCollapse);
+      sidebar.addEventListener('mouseleave', scheduleSidebarCollapse);
+      // Start timer on page load so sidebar collapses after 3s if user doesn't hover
+      scheduleSidebarCollapse();
+    }
+
     if (collapseBtn && sidebar) {
       collapseBtn.addEventListener('click', () => {
+        clearTimeout(sidebarCollapseTimer);
         sidebar.classList.toggle('collapsed');
       });
     }

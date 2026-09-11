@@ -44,7 +44,6 @@
     </div>
 
     <nav class="sidebar-menu">
-      <span class="menu-label">Analytics Hub</span>
       <a href="#overview" class="nav-link active" id="navOverview">
         <i data-lucide="layout-dashboard" class="nav-icon"></i>
         <span class="nav-text">Repair Overview</span>
@@ -82,26 +81,7 @@
     <!-- Top Sticky Header -->
     <header class="top-header">
       <div class="header-left">
-        <!-- Interactive Brand Search & Dropdown Component -->
-        <div class="brand-search-wrapper" id="brandSearchWrapper">
-          <div class="brand-search-input-wrap">
-            <i data-lucide="search" class="brand-search-icon"></i>
-            <input 
-              type="text" 
-              class="brand-search-input" 
-              id="brandSearchInput" 
-              placeholder="Search or Select Mobile Brand..." 
-              autocomplete="off"
-            />
-            <button type="button" id="brandSearchClearBtn" class="brand-search-clear-btn" style="display: none;" title="Clear brand filter (Show All Brands)">
-              <i data-lucide="x" style="width: 13px; height: 13px;"></i>
-            </button>
-          </div>
-          <!-- Automatic Brand Dropdown Menu (Honor, ZTE, Samsung, Redmi, etc.) -->
-          <div class="brand-dropdown-menu" id="brandDropdownMenu">
-            <!-- Populated dynamically with all 16 brands -->
-          </div>
-        </div>
+        <span style="font-family: 'Outfit', sans-serif; font-size: 1.05rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; white-space: nowrap;">Sawana Care</span>
       </div>
 
       <div class="header-right">
@@ -380,18 +360,14 @@
         <section class="dash-control-bar">
           <div class="dash-heading" style="flex-direction: row; align-items: center; gap: 1rem; flex-wrap: wrap;">
             <h1 style="margin: 0;">Brands &amp; Mobile Models Management</h1>
-            <button class="btn-primary" id="openAddBrandModalBtn" style="margin-left: auto; flex-shrink: 0;">
-              <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
-              <span>+ Add New Brand</span>
-            </button>
-          </div>
-
-          <div class="control-actions">
-            <!-- Search / Filter input -->
-            <div class="brand-mgmt-search-box">
+            <div class="brand-mgmt-search-box" style="margin-left: auto;">
               <i data-lucide="search" style="width: 15px; height: 15px; color: var(--text-muted);"></i>
               <input type="text" id="brandManagerSearchInput" placeholder="Filter brand or model..." autocomplete="off">
             </div>
+            <button class="btn-primary" id="openAddBrandModalBtn" style="flex-shrink: 0;">
+              <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+              <span>Add New Brand</span>
+            </button>
           </div>
         </section>
 

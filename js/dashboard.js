@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Range button "All"
     const rangeAllBtn = document.getElementById('rangeBtnAll');
     if (rangeAllBtn) {
-      rangeAllBtn.textContent = `All (${total}M)`;
+      rangeAllBtn.textContent = 'All';
     }
 
     // Modal Capacity Pill & Label
@@ -1542,33 +1542,21 @@ document.addEventListener('DOMContentLoaded', () => {
       themeBtn.addEventListener('click', toggleTheme);
     }
 
-    // Sidebar Toggle + Auto-Collapse
+    // Sidebar Auto-Collapse on Mouse Leave (immediate)
     const sidebar = document.getElementById('sidebar');
     const collapseBtn = document.getElementById('collapseSidebarBtn');
-    let sidebarCollapseTimer = null;
-
-    function scheduleSidebarCollapse() {
-      clearTimeout(sidebarCollapseTimer);
-      sidebarCollapseTimer = setTimeout(() => {
-        if (sidebar) sidebar.classList.add('collapsed');
-      }, 3000);
-    }
-
-    function cancelSidebarCollapse() {
-      clearTimeout(sidebarCollapseTimer);
-      if (sidebar) sidebar.classList.remove('collapsed');
-    }
 
     if (sidebar) {
-      sidebar.addEventListener('mouseenter', cancelSidebarCollapse);
-      sidebar.addEventListener('mouseleave', scheduleSidebarCollapse);
-      // Start timer on page load so sidebar collapses after 3s if user doesn't hover
-      scheduleSidebarCollapse();
+      sidebar.addEventListener('mouseenter', () => {
+        sidebar.classList.remove('collapsed');
+      });
+      sidebar.addEventListener('mouseleave', () => {
+        sidebar.classList.add('collapsed');
+      });
     }
 
     if (collapseBtn && sidebar) {
       collapseBtn.addEventListener('click', () => {
-        clearTimeout(sidebarCollapseTimer);
         sidebar.classList.toggle('collapsed');
       });
     }

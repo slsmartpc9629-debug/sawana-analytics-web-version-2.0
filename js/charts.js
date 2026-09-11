@@ -24,9 +24,37 @@ window.RepairCharts = {
     this.renderKpiSparklines();
   },
 
+  selectedBrands: null,
+
   setBrand(brandKey) {
     this.selectedBrand = brandKey;
+    if (brandKey === 'ALL') {
+      this.selectedBrands = Object.keys(window.RepairData.brands);
+    } else {
+      this.selectedBrands = [brandKey];
+    }
     this.renderRepairTimelineChart();
+    if (typeof window.SawanaSyncBrandFilterUI === 'function') {
+      window.SawanaSyncBrandFilterUI();
+    }
+  },
+
+  setSelectedBrands(brandsArray) {
+    const allKeys = Object.keys(window.RepairData.brands);
+    if (!brandsArray || brandsArray.length === 0 || brandsArray.length === allKeys.length) {
+      this.selectedBrands = allKeys;
+      this.selectedBrand = 'ALL';
+    } else if (brandsArray.length === 1) {
+      this.selectedBrands = brandsArray;
+      this.selectedBrand = brandsArray[0];
+    } else {
+      this.selectedBrands = brandsArray;
+      this.selectedBrand = 'MULTI';
+    }
+    this.renderRepairTimelineChart();
+    if (typeof window.SawanaSyncBrandFilterUI === 'function') {
+      window.SawanaSyncBrandFilterUI();
+    }
   },
 
   setTimeRange(numMonths) {
@@ -48,7 +76,7 @@ window.RepairCharts = {
 
   /**
    * Primary Time-Series Chart (Rolling Window: Aug 2025 – Aug 2026 • Max 24 Months)
-   * Y-Axis: Number of Repairs (0 - 20)
+   * Supports Single Brand Ruler, Multi-Brand Comparison, or All 16 Brands
    */
   renderRepairTimelineChart() {
     const allMonths = window.RepairData.months;
@@ -59,37 +87,83 @@ window.RepairCharts = {
     const startIndex = Math.max(0, allMonths.length - sliceCount);
     const months = allMonths.slice(startIndex);
 
+    const allBrandKeys = Object.keys(window.RepairData.brands);
+    let activeBrandKeys = this.selectedBrands;
+    if (!activeBrandKeys || activeBrandKeys.length === 0) {
+      if (this.selectedBrand && this.selectedBrand !== 'ALL' && window.RepairData.brands[this.selectedBrand]) {
+        activeBrandKeys = [this.selectedBrand];
+      } else {
+        activeBrandKeys = allBrandKeys;
+      }
+    }
+
+    const isAll = (activeBrandKeys.length === allBrandKeys.length);
+    const isSingle = (activeBrandKeys.length === 1);
+
     let series = [];
     let colors = [];
     let titleText = '';
-    let isAllBrands = (this.selectedBrand === 'ALL');
 
-    if (isAllBrands) {
+    if (isAll) {
       // All 16 Brands View
       titleText = `All 16 Mobile Brands Overview (${months[0]} – ${months[months.length - 1]} • ${months.length} Months)`;
-      Object.keys(window.RepairData.brands).forEach(k => {
+      activeBrandKeys.forEach(k => {
         const b = window.RepairData.brands[k];
+        if (!b) return;
         series.push({
           name: b.name,
           data: (b.monthlyRepairs || []).slice(startIndex)
         });
         colors.push(b.color);
       });
-    } else {
-      // Clean Single Brand Ruler Curve (Strictly Brand Only, No multiple model lines)
-      const b = window.RepairData.brands[this.selectedBrand] || window.RepairData.brands['SAMSUNG'];
+    } else if (isSingle) {
+      // Clean Single Brand Ruler Curve
+      const b = window.RepairData.brands[activeBrandKeys[0]] || window.RepairData.brands['SAMSUNG'];
       titleText = `${b.name} Monthly Repair Trend (${months[0]} – ${months[months.length - 1]} • ${months.length} Months)`;
       series.push({
         name: `${b.name} Repairs`,
         data: (b.monthlyRepairs || []).slice(startIndex)
       });
       colors.push(b.color);
+    } else {
+      // Multi-Brand Comparison (2 to 15 brands)
+      const names = activeBrandKeys.map(k => window.RepairData.brands[k]?.name || k);
+      const titlePrefix = names.length <= 3 ? names.join(', ') : `${names.length} Brands`;
+      titleText = `Repair Trend Comparison: ${titlePrefix} (${months[0]} – ${months[months.length - 1]} • ${months.length} Months)`;
+      activeBrandKeys.forEach(k => {
+        const b = window.RepairData.brands[k];
+        if (!b) return;
+        series.push({
+          name: b.name,
+          data: (b.monthlyRepairs || []).slice(startIndex)
+        });
+        colors.push(b.color);
+      });
     }
 
     // Update chart title in DOM
     const titleEl = document.getElementById('timelineChartTitle');
     if (titleEl) {
       titleEl.textContent = titleText;
+    }
+
+    // Update active brand badge
+    const badgeEl = document.getElementById('activeBrandBadge');
+    if (badgeEl) {
+      if (isAll) {
+        badgeEl.textContent = 'All 16 Brands';
+        badgeEl.style.background = 'rgba(6, 182, 212, 0.15)';
+        badgeEl.style.color = 'var(--color-cyan)';
+      } else if (isSingle) {
+        const b = window.RepairData.brands[activeBrandKeys[0]];
+        badgeEl.textContent = `${b ? b.name : activeBrandKeys[0]} Focused`;
+        badgeEl.style.background = b ? `${b.color}25` : 'rgba(59, 130, 246, 0.2)';
+        badgeEl.style.color = b ? b.color : '#3b82f6';
+      } else {
+        badgeEl.textContent = `${activeBrandKeys.length} Brands Compared`;
+        badgeEl.style.background = 'rgba(168, 85, 247, 0.2)';
+        badgeEl.style.color = '#c084fc';
+      }
     }
 
     const isLightMode = document.documentElement.getAttribute('data-theme') === 'light';
@@ -100,7 +174,7 @@ window.RepairCharts = {
     const options = {
       series: series,
       chart: {
-        type: isAllBrands ? 'line' : 'area',
+        type: isSingle ? 'area' : 'line',
         height: this.isChartExpanded ? 560 : 400,
         toolbar: {
           show: true,
@@ -125,10 +199,10 @@ window.RepairCharts = {
       colors: colors,
       stroke: {
         curve: 'smooth',
-        width: isAllBrands ? 2 : 3.5
+        width: isSingle ? 3.5 : (isAll ? 2 : 2.6)
       },
       fill: {
-        type: isAllBrands ? 'solid' : 'gradient',
+        type: isSingle ? 'gradient' : 'solid',
         gradient: {
           shadeIntensity: 1,
           opacityFrom: 0.45,
@@ -138,9 +212,9 @@ window.RepairCharts = {
       },
       // Never show cluttered labels on lines; strictly hover
       dataLabels: { enabled: false },
-      // Markers: 0 on All Brands to keep uncluttered; small on single ruler
+      // Markers: 0 on All Brands to keep uncluttered; small on single/multi
       markers: {
-        size: isAllBrands ? 0 : (months.length > 18 ? 3 : 4),
+        size: isAll ? 0 : (months.length > 18 ? 3 : 4),
         strokeWidth: 2,
         strokeColors: '#ffffff',
         hover: { size: 6 }
@@ -167,8 +241,8 @@ window.RepairCharts = {
       },
       yaxis: {
         min: 0,
-        max: 20,
-        tickAmount: 5, // 0, 4, 8, 12, 16, 20
+        max: isSingle ? 20 : undefined,
+        tickAmount: 5,
         axisBorder: { show: true, color: axisLineColor },
         axisTicks: { show: true, color: axisLineColor },
         title: {
@@ -188,7 +262,7 @@ window.RepairCharts = {
         }
       },
       legend: {
-        show: !isAllBrands,
+        show: !isSingle,
         position: 'top',
         horizontalAlign: 'right',
         fontSize: '12px',
@@ -197,7 +271,7 @@ window.RepairCharts = {
       },
       tooltip: {
         theme: isLightMode ? 'light' : 'dark',
-        shared: isAllBrands ? true : false,
+        shared: true,
         intersect: false,
         y: {
           formatter: (val) => `${val} Repairs`

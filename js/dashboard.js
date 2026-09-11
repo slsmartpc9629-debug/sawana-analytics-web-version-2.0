@@ -47,6 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDashboardEvents();
   initDataEditor();
   initBrandsManager();
+  initBrandMultiFilter();
+  initA4LandscapePdfPrint();
   initNavigationTabs();
   initSettingsTab();
   initKpiCardsToggle();
@@ -466,6 +468,381 @@ document.addEventListener('DOMContentLoaded', () => {
       activeBrandIndicator.style.color = '#818cf8';
     }
     populateList('');
+  }
+
+  /**
+   * Multi-Brand Filter Dropdown Popover
+   * Allows selecting any subset of brands (e.g. 1, 3, or all 16) to compare on the timeline chart.
+   */
+  function initBrandMultiFilter() {
+    const wrap = document.getElementById('brandFilterDropdownWrap');
+    const toggleBtn = document.getElementById('brandFilterDropdownBtn');
+    const popover = document.getElementById('brandFilterPopover');
+    const list = document.getElementById('brandFilterCheckboxList');
+    const countBadge = document.getElementById('filterSelectedCountBadge');
+    const btnText = document.getElementById('brandFilterBtnText');
+    const searchInput = document.getElementById('brandFilterSearchInput');
+    const selectAllBtn = document.getElementById('filterSelectAllBtn');
+    const clearAllBtn = document.getElementById('filterClearAllBtn');
+
+    if (!toggleBtn || !popover || !list) return;
+
+    function getSelectedKeys() {
+      if (!window.RepairCharts.selectedBrands || window.RepairCharts.selectedBrands.length === 0) {
+        if (window.RepairCharts.selectedBrand && window.RepairCharts.selectedBrand !== 'ALL') {
+          return [window.RepairCharts.selectedBrand];
+        }
+        return Object.keys(window.RepairData.brands);
+      }
+      return window.RepairCharts.selectedBrands;
+    }
+
+    function renderList(query = '') {
+      const brands = window.RepairData.brands;
+      const allKeys = Object.keys(brands);
+      const selected = getSelectedKeys();
+      const q = query.toLowerCase().trim();
+
+      const filteredKeys = allKeys.filter(k => 
+        k.toLowerCase().includes(q) || brands[k].name.toLowerCase().includes(q)
+      );
+
+      if (filteredKeys.length === 0) {
+        list.innerHTML = `<div style="padding: 0.8rem; text-align: center; color: var(--text-muted); font-size: 0.78rem;">No brand matches "${query}"</div>`;
+        return;
+      }
+
+      let html = '';
+      filteredKeys.forEach(k => {
+        const b = brands[k];
+        const isChecked = selected.includes(k);
+        const total = (b.monthlyRepairs || []).reduce((acc, v) => acc + (v || 0), 0);
+        html += `
+          <label class="filter-brand-item" data-key="${k}">
+            <input type="checkbox" value="${k}" class="brand-filter-check" ${isChecked ? 'checked' : ''} />
+            <span class="brand-dot" style="background: ${b.color};"></span>
+            <span class="brand-name-text">${b.name}</span>
+            <span class="brand-units-badge">${total}U</span>
+          </label>
+        `;
+      });
+
+      list.innerHTML = html;
+
+      // Checkbox change handlers
+      list.querySelectorAll('.brand-filter-check').forEach(chk => {
+        chk.addEventListener('change', () => {
+          const currentlySelected = Array.from(list.querySelectorAll('.brand-filter-check:checked')).map(c => c.value);
+          const currentVisibleKeys = filteredKeys;
+          const previouslySelectedOtherKeys = selected.filter(k => !currentVisibleKeys.includes(k));
+          const finalSelected = Array.from(new Set([...previouslySelectedOtherKeys, ...currentlySelected]));
+
+          window.RepairCharts.setSelectedBrands(finalSelected);
+          syncUI();
+        });
+      });
+    }
+
+    function syncUI() {
+      const allKeys = Object.keys(window.RepairData.brands);
+      const selected = getSelectedKeys();
+
+      // Update button text
+      if (selected.length === allKeys.length) {
+        btnText.textContent = `Brands: All (${allKeys.length})`;
+        countBadge.textContent = `${allKeys.length} / ${allKeys.length} Selected`;
+      } else if (selected.length === 1) {
+        const bName = window.RepairData.brands[selected[0]]?.name || selected[0];
+        btnText.textContent = `Brand: ${bName}`;
+        countBadge.textContent = `1 Selected (${bName})`;
+      } else if (selected.length === 0) {
+        btnText.textContent = 'Filter Brands (0)';
+        countBadge.textContent = '0 Selected';
+      } else {
+        btnText.textContent = `Brands: ${selected.length} Selected`;
+        countBadge.textContent = `${selected.length} / ${allKeys.length} Selected`;
+      }
+
+      // Checkboxes in list
+      list.querySelectorAll('.brand-filter-check').forEach(chk => {
+        chk.checked = selected.includes(chk.value);
+      });
+    }
+    window.SawanaSyncBrandFilterUI = syncUI;
+
+    // Toggle popover
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = popover.classList.contains('show');
+      if (isOpen) {
+        popover.classList.remove('show');
+      } else {
+        renderList(searchInput ? searchInput.value : '');
+        syncUI();
+        popover.classList.add('show');
+        renderAppIcons(popover);
+      }
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+      if (wrap && !wrap.contains(e.target)) {
+        popover.classList.remove('show');
+      }
+    });
+
+    // Search filter input
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        renderList(e.target.value);
+      });
+    }
+
+    // Select All
+    if (selectAllBtn) {
+      selectAllBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const allKeys = Object.keys(window.RepairData.brands);
+        window.RepairCharts.setSelectedBrands(allKeys);
+        syncUI();
+      });
+    }
+
+    // Clear All
+    if (clearAllBtn) {
+      clearAllBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.RepairCharts.setSelectedBrands([]);
+        syncUI();
+      });
+    }
+
+    // Initial render & sync
+    renderList();
+    syncUI();
+  }
+
+  /**
+   * A4 Landscape Print & PDF Export Engine
+   * Formats the report strictly for 297mm x 210mm Landscape with high-contrast vector fidelity.
+   */
+  function initA4LandscapePdfPrint() {
+    const printBtn = document.getElementById('printTimelinePdfBtn');
+    if (!printBtn) return;
+
+    let printChartInstance = null;
+
+    printBtn.addEventListener('click', () => {
+      const months = window.RepairData.months;
+      let sliceCount = months.length;
+      if (window.RepairCharts.currentRangeMonths !== 'ALL' && typeof window.RepairCharts.currentRangeMonths === 'number') {
+        sliceCount = Math.min(months.length, window.RepairCharts.currentRangeMonths);
+      }
+      const startIndex = Math.max(0, months.length - sliceCount);
+      const activeMonths = months.slice(startIndex);
+
+      const allBrandKeys = Object.keys(window.RepairData.brands);
+      let selectedKeys = window.RepairCharts.selectedBrands;
+      if (!selectedKeys || selectedKeys.length === 0) {
+        selectedKeys = (window.RepairCharts.selectedBrand && window.RepairCharts.selectedBrand !== 'ALL')
+          ? [window.RepairCharts.selectedBrand]
+          : allBrandKeys;
+      }
+
+      // 1. Fill Print Meta
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' +
+                      now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      
+      const dateEl = document.getElementById('printMetaDate');
+      if (dateEl) dateEl.textContent = dateStr;
+
+      const timelineEl = document.getElementById('printMetaTimeline');
+      if (timelineEl) timelineEl.textContent = `${activeMonths[0]} – ${activeMonths[activeMonths.length - 1]} (${activeMonths.length} Months)`;
+
+      const brandsCountEl = document.getElementById('printMetaBrands');
+      if (brandsCountEl) {
+        if (selectedKeys.length === allBrandKeys.length) {
+          brandsCountEl.textContent = `All ${allBrandKeys.length} Mobile Brands`;
+        } else {
+          const names = selectedKeys.map(k => window.RepairData.brands[k]?.name || k);
+          brandsCountEl.textContent = `${selectedKeys.length} Brands (${names.join(', ')})`;
+        }
+      }
+
+      // 2. Compute Summary Metrics across selected brands
+      let totalUnits = 0;
+      const monthSums = new Array(activeMonths.length).fill(0);
+
+      selectedKeys.forEach(k => {
+        const b = window.RepairData.brands[k];
+        if (!b) return;
+        const vals = (b.monthlyRepairs || []).slice(startIndex);
+        vals.forEach((v, idx) => {
+          monthSums[idx] += (v || 0);
+          totalUnits += (v || 0);
+        });
+      });
+
+      let peakVal = 0;
+      let peakMonthIdx = 0;
+      monthSums.forEach((v, idx) => {
+        if (v > peakVal) {
+          peakVal = v;
+          peakMonthIdx = idx;
+        }
+      });
+      const peakMonthStr = peakVal > 0 ? `${activeMonths[peakMonthIdx]} (${peakVal} Units)` : 'N/A';
+      const monthlyAvg = activeMonths.length > 0 ? (totalUnits / activeMonths.length).toFixed(1) : 0;
+
+      const kpiTotalEl = document.getElementById('printKpiTotalRepairs');
+      if (kpiTotalEl) kpiTotalEl.textContent = `${totalUnits.toLocaleString()} Units`;
+
+      const kpiBrandsEl = document.getElementById('printKpiActiveBrands');
+      if (kpiBrandsEl) kpiBrandsEl.textContent = `${selectedKeys.length} Brands`;
+
+      const kpiPeakEl = document.getElementById('printKpiPeakMonth');
+      if (kpiPeakEl) kpiPeakEl.textContent = peakMonthStr;
+
+      const kpiAvgEl = document.getElementById('printKpiMonthlyAvg');
+      if (kpiAvgEl) kpiAvgEl.textContent = `${monthlyAvg} /mo`;
+
+      // 3. Populate Itemized Data Table
+      const table = document.getElementById('printDataTable');
+      if (table) {
+        let tableHtml = `
+          <thead>
+            <tr>
+              <th style="text-align: left; min-width: 90px;">Brand Name</th>
+              ${activeMonths.map(m => {
+                const parts = m.split(' ');
+                const shortLabel = parts[0] + (parts[1] ? `'` + parts[1].slice(2) : '');
+                return `<th>${shortLabel}</th>`;
+              }).join('')}
+              <th style="font-weight: 800; background: #e2e8f0;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+        `;
+
+        selectedKeys.forEach(k => {
+          const b = window.RepairData.brands[k];
+          if (!b) return;
+          const vals = (b.monthlyRepairs || []).slice(startIndex);
+          const brandSum = vals.reduce((a, c) => a + (c || 0), 0);
+          tableHtml += `
+            <tr>
+              <td class="brand-col">
+                <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: ${b.color}; margin-right: 4px;"></span>
+                ${b.name}
+              </td>
+              ${vals.map(v => `<td>${v || 0}</td>`).join('')}
+              <td style="font-weight: 700; background: #f8fafc;">${brandSum}</td>
+            </tr>
+          `;
+        });
+
+        // Combined Total Row
+        tableHtml += `
+          <tr class="total-row">
+            <td class="brand-col" style="font-weight: 800;">Combined Total</td>
+            ${monthSums.map(s => `<td style="font-weight: 700;">${s}</td>`).join('')}
+            <td style="font-weight: 900; background: #e2e8f0; color: #0284c7;">${totalUnits}</td>
+          </tr>
+        `;
+
+        tableHtml += `</tbody>`;
+        table.innerHTML = tableHtml;
+      }
+
+      // 4. Render Print Chart into #printChartCanvas
+      const chartCanvas = document.getElementById('printChartCanvas');
+      if (chartCanvas && typeof ApexCharts !== 'undefined') {
+        if (printChartInstance) {
+          try { printChartInstance.destroy(); } catch(e) {}
+        }
+        chartCanvas.innerHTML = '';
+
+        const printSeries = [];
+        const printColors = [];
+
+        selectedKeys.forEach(k => {
+          const b = window.RepairData.brands[k];
+          if (!b) return;
+          printSeries.push({
+            name: b.name,
+            data: (b.monthlyRepairs || []).slice(startIndex)
+          });
+          printColors.push(b.color);
+        });
+
+        const isSingle = (selectedKeys.length === 1);
+        const printOptions = {
+          series: printSeries,
+          chart: {
+            type: isSingle ? 'area' : 'line',
+            height: 250,
+            animations: { enabled: false },
+            toolbar: { show: false },
+            background: '#ffffff',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+          },
+          colors: printColors,
+          stroke: {
+            curve: 'smooth',
+            width: isSingle ? 3 : 2
+          },
+          fill: {
+            type: isSingle ? 'gradient' : 'solid',
+            gradient: {
+              shadeIntensity: 1,
+              opacityFrom: 0.35,
+              opacityTo: 0.05
+            }
+          },
+          dataLabels: { enabled: false },
+          markers: { size: activeMonths.length > 18 ? 2 : 3 },
+          grid: {
+            borderColor: '#e2e8f0',
+            strokeDashArray: 3
+          },
+          xaxis: {
+            categories: activeMonths,
+            labels: {
+              style: { colors: '#475569', fontSize: '8.5px', fontWeight: 600 },
+              rotate: -45,
+              rotateAlways: true
+            }
+          },
+          yaxis: {
+            min: 0,
+            max: isSingle ? 20 : undefined,
+            tickAmount: 4,
+            labels: {
+              style: { colors: '#475569', fontSize: '8.5px' },
+              formatter: val => Math.round(val)
+            }
+          },
+          legend: {
+            show: selectedKeys.length > 1,
+            position: 'top',
+            horizontalAlign: 'right',
+            fontSize: '9px',
+            labels: { colors: '#334155' }
+          }
+        };
+
+        printChartInstance = new ApexCharts(chartCanvas, printOptions);
+        printChartInstance.render();
+      }
+
+      showToast('Preparing A4 Landscape PDF Report...', 'info');
+
+      // Allow chart SVG to mount cleanly before printing
+      setTimeout(() => {
+        window.print();
+      }, 350);
+    });
   }
 
   /**

@@ -2516,3 +2516,264 @@ input:checked + .slider:before {
   min-height: 560px !important;
 }
 
+/* ==========================================================================
+   Multi-Brand Filter Dropdown & Popover
+   ========================================================================== */
+.brand-filter-dropdown-wrap {
+  position: relative;
+}
+
+.brand-filter-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 290px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(20px);
+  z-index: 200;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  animation: dropdownFade 0.18s ease-out;
+}
+
+.brand-filter-popover.show {
+  display: flex;
+}
+
+.filter-popover-header {
+  padding: 0.75rem 0.85rem 0.6rem;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.filter-popover-list {
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.filter-brand-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  user-select: none;
+}
+
+.filter-brand-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.filter-brand-item input[type="checkbox"] {
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+}
+
+.filter-brand-item .brand-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.filter-brand-item .brand-name-text {
+  flex: 1;
+  font-weight: 500;
+}
+
+.filter-brand-item .brand-units-badge {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   A4 Landscape Print & PDF Layout (Strictly 297mm x 210mm Vector)
+   ========================================================================== */
+@media screen {
+  .print-report-container {
+    display: none !important;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm 10mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-sizing: border-box !important;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+    font-size: 10pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    min-height: 100% !important;
+  }
+
+  /* Hide entire dashboard UI during print */
+  .sidebar,
+  .top-header,
+  .dashboard-content,
+  .modal-overlay,
+  .toast-container,
+  .brand-filter-popover,
+  #brandFilterPopover {
+    display: none !important;
+  }
+
+  /* Show only the print report container */
+  .print-report-container {
+    display: block !important;
+    width: 100% !important;
+    max-width: 277mm !important;
+    margin: 0 auto !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  .print-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    border-bottom: 2px solid #0f172a !important;
+    padding-bottom: 5px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .print-brand-name {
+    font-size: 15pt !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.04em !important;
+    color: #0f172a !important;
+    font-family: 'Outfit', sans-serif !important;
+  }
+
+  .print-report-title {
+    font-size: 9.5pt !important;
+    color: #475569 !important;
+    font-weight: 600 !important;
+    margin-top: 2px !important;
+  }
+
+  .print-header-right {
+    text-align: right !important;
+    font-size: 8pt !important;
+    color: #334155 !important;
+    line-height: 1.4 !important;
+  }
+
+  .print-kpi-strip {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .print-kpi-box {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 4px !important;
+    padding: 5px 8px !important;
+  }
+
+  .print-kpi-label {
+    font-size: 6.5pt !important;
+    font-weight: 700 !important;
+    color: #64748b !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+    display: block !important;
+  }
+
+  .print-kpi-number {
+    font-size: 11.5pt !important;
+    font-weight: 800 !important;
+    color: #0284c7 !important;
+    display: block !important;
+    margin-top: 2px !important;
+    font-family: 'Outfit', sans-serif !important;
+  }
+
+  .print-chart-block {
+    margin-bottom: 8px !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-section-heading {
+    font-size: 8pt !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    margin-bottom: 4px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding-bottom: 2px !important;
+  }
+
+  .print-data-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 7.5pt !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-data-table th, .print-data-table td {
+    padding: 2.5px 4px !important;
+    border: 1px solid #cbd5e1 !important;
+    text-align: center !important;
+  }
+
+  .print-data-table th {
+    background: #f1f5f9 !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+  }
+
+  .print-data-table td.brand-col {
+    text-align: left !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+  }
+
+  .print-data-table tr.total-row {
+    background: #f8fafc !important;
+    font-weight: 800 !important;
+    border-top: 2px solid #0f172a !important;
+  }
+
+  .print-footer {
+    display: flex !important;
+    justify-content: space-between !important;
+    font-size: 7pt !important;
+    color: #64748b !important;
+    border-top: 1px solid #cbd5e1 !important;
+    padding-top: 4px !important;
+    margin-top: 6px !important;
+  }
+}
+
+

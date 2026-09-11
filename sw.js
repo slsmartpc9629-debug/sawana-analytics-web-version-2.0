@@ -3,7 +3,7 @@
  * Provides offline caching, lightning-fast desktop launching, and PWA installability.
  */
 
-const CACHE_NAME = 'sawana-care-v14';
+const CACHE_NAME = 'sawana-care-v15';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

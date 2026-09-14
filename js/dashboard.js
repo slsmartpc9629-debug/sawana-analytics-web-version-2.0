@@ -2161,7 +2161,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const highestTotal = brandRanking.length > 0 ? (brandRanking[0].total || 1) : 1;
 
       if (subtitleEl) {
-        subtitleEl.textContent = `Ranking of ${brandRanking.length} mobile brands by repair sales across ${timeframeLabel} (${grandTotal} total units).`;
+        subtitleEl.textContent = `Ranking of all ${brandRanking.length} mobile brands by repair sales.`;
       }
 
       container.innerHTML = brandRanking.map((b, idx) => {
@@ -2216,7 +2216,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalBrandRepairs = slicedBrandRepairs.reduce((acc, v) => acc + (v || 0), 0);
 
     if (subtitleEl) {
-      subtitleEl.textContent = `${modelNames.length} Models registered under ${brand.name} • ${totalBrandRepairs} Total brand units across ${timeframeLabel}.`;
+      subtitleEl.textContent = `${modelNames.length} Models registered under ${brand.name}.`;
     }
 
     if (modelNames.length === 0) {
@@ -2224,7 +2224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div style="text-align: center; padding: 2.2rem 1rem; color: var(--text-muted);">
           <i data-lucide="smartphone" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.45;"></i>
           <p style="font-size: 0.88rem; color: var(--text-secondary); margin: 0;">
-            All repairs are tracked under General Brand Total (${totalBrandRepairs} Units). Models can be created and managed in the Brands & Models hub.
+            All repairs are tracked under General Brand Total. Models can be created and managed in the Brands & Models hub.
           </p>
         </div>
       `;

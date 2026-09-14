@@ -28,21 +28,53 @@ window.RepairCharts = {
   selectedBrands: null,
   highlightedDonutBrand: null,
 
-  toggleBrandHighlight(brandKey) {
+  toggleBrandHighlight(brandKey, fromSliceClick = false) {
     if (!brandKey || this.highlightedDonutBrand === brandKey) {
       // Toggle OFF
       this.highlightedDonutBrand = null;
+      if (!fromSliceClick) {
+        this.syncDonutSliceSeparation(null);
+      }
       if (typeof window.SawanaSelectBrandFromDonut === 'function') {
         window.SawanaSelectBrandFromDonut(null);
       }
     } else {
       // Toggle ON
       this.highlightedDonutBrand = brandKey;
+      if (!fromSliceClick) {
+        this.syncDonutSliceSeparation(brandKey);
+      }
       if (typeof window.SawanaSelectBrandFromDonut === 'function') {
         window.SawanaSelectBrandFromDonut(brandKey);
       }
     }
     this.updateLegendHighlightStyles();
+  },
+
+  syncDonutSliceSeparation(brandKey) {
+    const chart = this.instances.brandShare;
+    if (!chart || !chart.w || !chart.w.globals) return;
+    const labels = chart.w.globals.labels || [];
+
+    let targetIdx = -1;
+    if (brandKey && window.RepairData.brands[brandKey]) {
+      const bName = window.RepairData.brands[brandKey].name;
+      targetIdx = labels.indexOf(bName);
+    }
+
+    const slices = document.querySelectorAll('#brandShareChart path.apexcharts-pie-area');
+    slices.forEach((slice, idx) => {
+      const isClicked = slice.getAttribute('data:pieClicked') === 'true';
+      if (idx === targetIdx) {
+        if (!isClicked && chart.pie && typeof chart.pie.pieClicked === 'function') {
+          chart.pie.pieClicked(idx);
+        }
+      } else {
+        if (isClicked && chart.pie && typeof chart.pie.pieClicked === 'function') {
+          chart.pie.pieClicked(idx);
+        }
+      }
+    });
   },
 
   updateLegendHighlightStyles() {
@@ -513,7 +545,7 @@ window.RepairCharts = {
               const clickedName = labels[idx];
               const foundKey = Object.keys(brands).find(k => brands[k].name === clickedName);
               if (foundKey) {
-                this.toggleBrandHighlight(foundKey);
+                this.toggleBrandHighlight(foundKey, true);
               }
             }
           },
@@ -543,7 +575,7 @@ window.RepairCharts = {
       },
       plotOptions: {
         pie: {
-          expandOnClick: false,
+          expandOnClick: true,
           donut: {
             size: '68%',
             labels: {
@@ -593,7 +625,11 @@ window.RepairCharts = {
         this.instances.brandShare.destroy();
       }
       this.instances.brandShare = new ApexCharts(container, options);
-      this.instances.brandShare.render();
+      this.instances.brandShare.render().then(() => {
+        if (this.highlightedDonutBrand) {
+          setTimeout(() => this.syncDonutSliceSeparation(this.highlightedDonutBrand), 150);
+        }
+      });
     }
 
     // ── Custom two-column aligned interactive legend (no scrollbar) ───────────

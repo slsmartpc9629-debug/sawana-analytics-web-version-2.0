@@ -12,6 +12,7 @@
   "type": "commonjs",
   "dependencies": {
     "apexcharts": "^7.1.0",
+    "jspdf": "^4.2.1",
     "lucide": "^1.44.0"
   }
 }

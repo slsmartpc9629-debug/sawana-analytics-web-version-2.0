@@ -150,8 +150,11 @@ document.addEventListener('DOMContentLoaded', () => {
     updateVersionBadges(curV);
     renderNotificationsList();
 
-    // Clear notifications button
+    const notifBtn = document.getElementById('notificationBtn');
+    const notifDropdown = document.getElementById('notificationsDropdown');
+    const closeBtn = document.getElementById('closeNotifDropdownBtn');
     const clearBtn = document.getElementById('clearNotificationsBtn');
+
     if (clearBtn) {
       clearBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -171,12 +174,32 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Dismiss unread dot on opening dropdown
-    const notifBtn = document.getElementById('notificationBtn');
+    if (closeBtn && notifDropdown) {
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        notifDropdown.classList.remove('show');
+      });
+    }
+
     if (notifBtn) {
-      notifBtn.addEventListener('click', () => {
+      notifBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         const badge = notifBtn.querySelector('.notification-badge');
         if (badge) badge.style.display = 'none';
+
+        // Load latest update to display as animated UI widget from icon
+        let notifications = [];
+        try {
+          const saved = localStorage.getItem('sawana_app_notifications');
+          if (saved) notifications = JSON.parse(saved);
+        } catch (err) {}
+
+        const latest = (notifications && notifications.length > 0)
+          ? notifications[0]
+          : { title: 'Sawana Care Updates', details: 'All repair metrics, charts & models synced and operational.' };
+
+        showToast(`${latest.title}${latest.details ? ' — ' + latest.details : ''}`, 'info');
       });
     }
   }
@@ -210,10 +233,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const lastM = months[months.length - 1] || 'Aug 2026';
     const total = months.length;
 
-    // Header badge
+    // Header badge (clean date range only, no Max 24 text)
     const headerBadge = document.getElementById('timelineHeaderBadge');
     if (headerBadge) {
-      headerBadge.textContent = `${firstM} – ${lastM} (${total} Months • Max 24)`;
+      headerBadge.textContent = `${firstM} – ${lastM}`;
     }
 
     // Settings tab timeline info badge
@@ -230,15 +253,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-    const nextM = window.RepairData.getNextMonthLabel();
-    const addBtnText = document.getElementById('editorAddMonthBtnText');
-    if (addBtnText) {
-      addBtnText.textContent = `+ Add Next Month (${nextM})`;
-    }
-
     const gridLabel = document.getElementById('editorMonthsGridLabel');
     if (gridLabel) {
-      gridLabel.textContent = `Monthly Repair Counts (${firstM} – ${lastM})`;
+      gridLabel.textContent = `Monthly Repair Counts`;
     }
   }
 
@@ -254,6 +271,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Array.isArray(parsedMonths) && parsedMonths.length >= 1) {
           window.RepairData.months = parsedMonths.slice(-24); // enforce max 24
         }
+      }
+
+      // Explicitly remove "Sep 2026" from saved timeline if present
+      const sepIdx = window.RepairData.months.indexOf("Sep 2026");
+      if (sepIdx !== -1) {
+        window.RepairData.months.splice(sepIdx, 1);
+        localStorage.setItem('phonecare_custom_months', JSON.stringify(window.RepairData.months));
       }
 
       // 2. Load saved brands
@@ -392,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
           activeBrandIndicator.style.color = '#818cf8';
         }
         renderBrandMonthlyItemsTable('SAMSUNG');
-        renderBrandModelsPanel('SAMSUNG');
+        renderBrandModelsPanel('ALL');
         showToast('Timeline: All 16 brands overview', 'info');
       } else {
         const b = brands[brandKey];
@@ -547,20 +571,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const allKeys = Object.keys(window.RepairData.brands);
       const selected = getSelectedKeys();
 
-      // Update button text
+      // Update button text (No brand count numbers)
       if (selected.length === allKeys.length) {
-        btnText.textContent = `Brands: All (${allKeys.length})`;
-        countBadge.textContent = `${allKeys.length} / ${allKeys.length} Selected`;
+        btnText.textContent = 'All Brands';
       } else if (selected.length === 1) {
         const bName = window.RepairData.brands[selected[0]]?.name || selected[0];
-        btnText.textContent = `Brand: ${bName}`;
-        countBadge.textContent = `1 Selected (${bName})`;
-      } else if (selected.length === 0) {
-        btnText.textContent = 'Filter Brands (0)';
-        countBadge.textContent = '0 Selected';
+        btnText.textContent = bName;
       } else {
-        btnText.textContent = `Brands: ${selected.length} Selected`;
-        countBadge.textContent = `${selected.length} / ${allKeys.length} Selected`;
+        btnText.textContent = 'Filter Brands';
+      }
+      if (countBadge) {
+        countBadge.style.display = 'none';
       }
 
       // Checkboxes in list
@@ -621,18 +642,335 @@ document.addEventListener('DOMContentLoaded', () => {
     renderList();
     syncUI();
   }
+  /**
+   * Generates a high-precision, vector-perfect A4 Landscape SVG chart report
+   * strictly matching the user's reference design with exact proportions, crisp grid,
+   * smooth spline curves, and centered bottom legend.
+   */
+  function buildA4LandscapeReportSvg(activeMonths, selectedKeys, brands) {
+    const width = 1120;
+    const height = 750;
+
+    // Boundaries
+    const titleY = 55;
+    const subTitleY = 85;
+
+    const chartLeft = 70;
+    const chartRight = 1070;
+    const chartTop = 130;
+    const chartBottom = 600;
+    const chartWidth = chartRight - chartLeft;
+    const chartHeight = chartBottom - chartTop;
+
+    // Calculate maximum value across all selected brands
+    let maxVal = 0;
+    selectedKeys.forEach(k => {
+      const b = brands[k];
+      if (!b) return;
+      const data = (b.monthlyRepairs || []).slice(-activeMonths.length);
+      data.forEach(v => {
+        const num = Number(v);
+        if (!isNaN(num) && num > maxVal) maxVal = num;
+      });
+    });
+
+    // Dynamic Y-axis steps: 5, 10, or clean multiples
+    let yStep = 5;
+    if (maxVal <= 10) yStep = 2;
+    else if (maxVal <= 25) yStep = 5;
+    else if (maxVal <= 50) yStep = 10;
+    else yStep = Math.ceil(maxVal / 5);
+
+    const yMax = Math.max(yStep, Math.ceil((maxVal + 1) / yStep) * yStep);
+    const yTicks = [];
+    for (let val = 0; val <= yMax; val += yStep) {
+      yTicks.push(val);
+    }
+
+    const getX = (index) => {
+      if (activeMonths.length <= 1) return chartLeft + chartWidth / 2;
+      return chartLeft + (index / (activeMonths.length - 1)) * chartWidth;
+    };
+
+    const getY = (val) => {
+      const clampedVal = Math.max(0, Math.min(yMax, val));
+      return chartBottom - (clampedVal / yMax) * chartHeight;
+    };
+
+    // Cubic Bezier Catmull-Rom Spline generator
+    const getSplinePath = (pts) => {
+      if (!pts || pts.length === 0) return '';
+      if (pts.length === 1) return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+      let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[Math.max(0, i - 1)];
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const p3 = pts[Math.min(pts.length - 1, i + 2)];
+
+        let cp1x = p1.x + (p2.x - p0.x) / 5.2;
+        let cp1y = p1.y + (p2.y - p0.y) / 5.2;
+        let cp2x = p2.x - (p3.x - p1.x) / 5.2;
+        let cp2y = p2.y - (p3.y - p1.y) / 5.2;
+
+        // Clamp so spline doesn't wobble below the 0 axis line
+        if (p1.y >= chartBottom - 0.5 && p2.y >= chartBottom - 0.5) {
+          cp1y = chartBottom;
+          cp2y = chartBottom;
+        } else {
+          if (cp1y > chartBottom) cp1y = chartBottom;
+          if (cp2y > chartBottom) cp2y = chartBottom;
+        }
+
+        d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+      }
+      return d;
+    };
+
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%" style="background:#ffffff; font-family:'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">\n`;
+
+    svg += `  <defs>
+    <style>
+      .grid-line { stroke: #cbd5e1; stroke-dasharray: 4 4; stroke-width: 0.9; }
+      .axis-line { stroke: #94a3b8; stroke-width: 1.2; }
+      .axis-label { font-size: 11px; fill: #334155; font-weight: 500; font-family: 'Outfit', sans-serif; }
+      .y-title { font-size: 12px; font-weight: 700; fill: #0f172a; font-family: 'Outfit', sans-serif; }
+      .brand-line { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>\n`;
+
+    // Title & Date Subtitle
+    const isSingle = (selectedKeys.length === 1);
+    const isAll = (selectedKeys.length === Object.keys(brands).length);
+    let titleText = 'Mobile Brands Overview';
+    if (isSingle) {
+      const b = brands[selectedKeys[0]];
+      titleText = `${b ? b.name : selectedKeys[0]} Monthly Repair Trend`;
+    } else if (!isAll) {
+      titleText = 'Mobile Repair Brands Comparison';
+    }
+
+    const dateRangeText = (activeMonths.length > 0)
+      ? `${activeMonths[0]} – ${activeMonths[activeMonths.length - 1]}`
+      : 'Aug 2025 – Aug 2026';
+
+    svg += `  <!-- Header -->
+  <text x="${width / 2}" y="${titleY}" text-anchor="middle" font-size="32" font-weight="800" fill="#000000" letter-spacing="-0.5">${titleText}</text>
+  <text x="${width / 2}" y="${subTitleY}" text-anchor="middle" font-size="16" font-weight="700" fill="#0f172a">${dateRangeText}</text>\n`;
+
+    // Y-Axis Horizontal Dashed Grid & Tick Labels
+    svg += `  <!-- Y-Axis Grid & Labels -->\n`;
+    yTicks.forEach(val => {
+      const y = getY(val);
+      svg += `  <line x1="${chartLeft}" y1="${y.toFixed(1)}" x2="${chartRight}" y2="${y.toFixed(1)}" class="grid-line" />\n`;
+      svg += `  <text x="${chartLeft - 10}" y="${(y + 4).toFixed(1)}" text-anchor="end" class="axis-label">${val}</text>\n`;
+    });
+
+    // Y-Axis Title: "Number of Repairs"
+    svg += `  <text x="${chartLeft - 42}" y="${(chartTop + chartBottom) / 2}" text-anchor="middle" transform="rotate(-90 ${chartLeft - 42} ${(chartTop + chartBottom) / 2})" class="y-title">Number of Repairs</text>\n`;
+
+    // X-Axis Vertical Dashed Grid & Month Labels
+    svg += `  <!-- X-Axis Grid & Labels -->\n`;
+    activeMonths.forEach((m, idx) => {
+      const x = getX(idx);
+      svg += `  <line x1="${x.toFixed(1)}" y1="${chartTop}" x2="${x.toFixed(1)}" y2="${chartBottom}" class="grid-line" />\n`;
+      svg += `  <line x1="${x.toFixed(1)}" y1="${chartBottom}" x2="${x.toFixed(1)}" y2="${chartBottom + 6}" class="axis-line" />\n`;
+      svg += `  <text x="${x.toFixed(1)}" y="${chartBottom + 18}" text-anchor="end" transform="rotate(-45 ${x.toFixed(1)} ${chartBottom + 18})" class="axis-label">${m}</text>\n`;
+    });
+
+    // Outer Axis Lines (Left Y and Bottom X)
+    svg += `  <!-- Axes Borders -->
+  <line x1="${chartLeft}" y1="${chartTop}" x2="${chartLeft}" y2="${chartBottom}" class="axis-line" />
+  <line x1="${chartLeft}" y1="${chartBottom}" x2="${chartRight}" y2="${chartBottom}" class="axis-line" />\n`;
+
+    // Brand Spline Curves
+    svg += `  <!-- Brand Spline Curves -->\n`;
+    selectedKeys.forEach(k => {
+      const b = brands[k];
+      if (!b) return;
+      const data = (b.monthlyRepairs || []).slice(-activeMonths.length);
+      const pts = [];
+      activeMonths.forEach((m, idx) => {
+        const val = (data[idx] !== undefined) ? Number(data[idx]) : 0;
+        pts.push({ x: getX(idx), y: getY(val) });
+      });
+
+      const d = getSplinePath(pts);
+      const strokeWidth = selectedKeys.length > 8 ? 2.2 : (isSingle ? 3.2 : 2.8);
+      svg += `  <path d="${d}" class="brand-line" stroke="${b.color}" stroke-width="${strokeWidth}" />\n`;
+    });
+
+    // Bottom Centered Legend
+    svg += `  <!-- Bottom Legend -->\n`;
+    const legendItems = selectedKeys.map(k => brands[k]).filter(Boolean);
+    const itemWidths = legendItems.map(item => 14 + item.name.length * 7.5 + 16);
+    const totalLegendWidth = itemWidths.reduce((a, b) => a + b, 0);
+
+    if (totalLegendWidth <= chartWidth + 40) {
+      let curX = (width - totalLegendWidth) / 2;
+      const legY = height - 40;
+      legendItems.forEach((item, i) => {
+        const dotX = curX + 5;
+        const textX = dotX + 11;
+        svg += `  <circle cx="${dotX.toFixed(1)}" cy="${(legY - 4).toFixed(1)}" r="4.5" fill="${item.color}" />\n`;
+        svg += `  <text x="${textX.toFixed(1)}" y="${legY.toFixed(1)}" font-size="11.5" font-weight="600" fill="#0f172a">${item.name}</text>\n`;
+        curX += itemWidths[i];
+      });
+    } else {
+      const half = Math.ceil(legendItems.length / 2);
+      const row1 = legendItems.slice(0, half);
+      const row2 = legendItems.slice(half);
+
+      const r1Width = row1.map(item => 14 + item.name.length * 7.5 + 16).reduce((a, b) => a + b, 0);
+      const r2Width = row2.map(item => 14 + item.name.length * 7.5 + 16).reduce((a, b) => a + b, 0);
+
+      let curX1 = (width - r1Width) / 2;
+      const legY1 = height - 48;
+      row1.forEach((item) => {
+        const w = 14 + item.name.length * 7.5 + 16;
+        svg += `  <circle cx="${(curX1 + 5).toFixed(1)}" cy="${(legY1 - 4).toFixed(1)}" r="4.5" fill="${item.color}" />\n`;
+        svg += `  <text x="${(curX1 + 16).toFixed(1)}" y="${legY1.toFixed(1)}" font-size="11.5" font-weight="600" fill="#0f172a">${item.name}</text>\n`;
+        curX1 += w;
+      });
+
+      let curX2 = (width - r2Width) / 2;
+      const legY2 = height - 26;
+      row2.forEach((item) => {
+        const w = 14 + item.name.length * 7.5 + 16;
+        svg += `  <circle cx="${(curX2 + 5).toFixed(1)}" cy="${(legY2 - 4).toFixed(1)}" r="4.5" fill="${item.color}" />\n`;
+        svg += `  <text x="${(curX2 + 16).toFixed(1)}" y="${legY2.toFixed(1)}" font-size="11.5" font-weight="600" fill="#0f172a">${item.name}</text>\n`;
+        curX2 += w;
+      });
+    }
+
+    svg += `</svg>`;
+    return svg;
+  }
+
+  /**
+   * Trigger clean isolated A4 landscape print via dedicated hidden iframe
+   * Completely eliminates blank preview issues in Chrome/Edge browsers.
+   */
+  function triggerCleanA4Print(svgHtml) {
+    let iframe = document.getElementById('sawanaPrintIframe');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'sawanaPrintIframe';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.style.visibility = 'hidden';
+      document.body.appendChild(iframe);
+    }
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sawana Care — Mobile Repair Analytics</title>
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 4mm 6mm;
+    }
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
+    }
+    svg {
+      width: 100%;
+      height: 100%;
+      max-width: 285mm;
+      max-height: 202mm;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  ${svgHtml}
+</body>
+</html>`);
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    }, 280);
+  }
+
+  /**
+   * Direct A4 Landscape PDF Download using jsPDF + high-res canvas rasterization
+   */
+  function triggerDownloadReportPdf(svgHtml, fileName = 'Sawana_Care_Repair_Analytics.pdf') {
+    showToast('Generating A4 Landscape PDF...', 'info');
+    const { jsPDF } = window.jspdf || {};
+    if (!jsPDF) {
+      showToast('Loading PDF generator, please retry in a moment...', 'warning');
+      return;
+    }
+
+    const svgBlob = new Blob([svgHtml], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+
+    img.onload = () => {
+      // 2376 x 1680 delivers crisp high-resolution 200+ DPI on standard A4 landscape
+      const canvas = document.createElement('canvas');
+      canvas.width = 2376;
+      canvas.height = 1680;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, 297, 210);
+      pdf.save(fileName);
+      showToast('A4 Landscape PDF downloaded successfully!', 'success');
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      showToast('Failed to rasterize PDF preview image', 'error');
+    };
+
+    img.src = url;
+  }
 
   /**
    * A4 Landscape Print & PDF Export Engine
    * Formats the report strictly for 297mm x 210mm Landscape with high-contrast vector fidelity.
    */
   function initA4LandscapePdfPrint() {
-    const printBtn = document.getElementById('printTimelinePdfBtn');
-    if (!printBtn) return;
+    const printButtons = document.querySelectorAll('.btn-print-a4-pdf, #printTimelinePdfBtn, #printTimelinePdfChartBtn');
+    const downloadButtons = document.querySelectorAll('#downloadTimelinePdfBtn');
 
-    let printChartInstance = null;
-
-    printBtn.addEventListener('click', () => {
+    function getReportSvg() {
       const months = window.RepairData.months;
       let sliceCount = months.length;
       if (window.RepairCharts.currentRangeMonths !== 'ALL' && typeof window.RepairCharts.currentRangeMonths === 'number') {
@@ -648,200 +986,36 @@ document.addEventListener('DOMContentLoaded', () => {
           ? [window.RepairCharts.selectedBrand]
           : allBrandKeys;
       }
+      return buildA4LandscapeReportSvg(activeMonths, selectedKeys, window.RepairData.brands);
+    }
 
-      // 1. Fill Print Meta
-      const now = new Date();
-      const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' +
-                      now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-      
-      const dateEl = document.getElementById('printMetaDate');
-      if (dateEl) dateEl.textContent = dateStr;
-
-      const timelineEl = document.getElementById('printMetaTimeline');
-      if (timelineEl) timelineEl.textContent = `${activeMonths[0]} – ${activeMonths[activeMonths.length - 1]} (${activeMonths.length} Months)`;
-
-      const brandsCountEl = document.getElementById('printMetaBrands');
-      if (brandsCountEl) {
-        if (selectedKeys.length === allBrandKeys.length) {
-          brandsCountEl.textContent = `All ${allBrandKeys.length} Mobile Brands`;
-        } else {
-          const names = selectedKeys.map(k => window.RepairData.brands[k]?.name || k);
-          brandsCountEl.textContent = `${selectedKeys.length} Brands (${names.join(', ')})`;
-        }
+    const handlePrint = () => {
+      const svgHtml = getReportSvg();
+      // Keep DOM container updated as well
+      const printContainer = document.getElementById('printReportContainer');
+      if (printContainer) {
+        printContainer.innerHTML = svgHtml;
       }
+      showToast('Opening A4 Landscape Print Preview...', 'info');
+      triggerCleanA4Print(svgHtml);
+    };
 
-      // 2. Compute Summary Metrics across selected brands
-      let totalUnits = 0;
-      const monthSums = new Array(activeMonths.length).fill(0);
+    const handleDownload = () => {
+      const svgHtml = getReportSvg();
+      const brandKey = window.RepairCharts.selectedBrand;
+      const brandName = (brandKey && brandKey !== 'ALL' && brandKey !== 'MULTI' && window.RepairData.brands[brandKey])
+        ? window.RepairData.brands[brandKey].name.replace(/\s+/g, '_')
+        : 'All_Brands';
+      const fileName = `Sawana_Care_${brandName}_Repair_Analytics_${Date.now()}.pdf`;
+      triggerDownloadReportPdf(svgHtml, fileName);
+    };
 
-      selectedKeys.forEach(k => {
-        const b = window.RepairData.brands[k];
-        if (!b) return;
-        const vals = (b.monthlyRepairs || []).slice(startIndex);
-        vals.forEach((v, idx) => {
-          monthSums[idx] += (v || 0);
-          totalUnits += (v || 0);
-        });
-      });
+    printButtons.forEach(btn => {
+      btn.addEventListener('click', handlePrint);
+    });
 
-      let peakVal = 0;
-      let peakMonthIdx = 0;
-      monthSums.forEach((v, idx) => {
-        if (v > peakVal) {
-          peakVal = v;
-          peakMonthIdx = idx;
-        }
-      });
-      const peakMonthStr = peakVal > 0 ? `${activeMonths[peakMonthIdx]} (${peakVal} Units)` : 'N/A';
-      const monthlyAvg = activeMonths.length > 0 ? (totalUnits / activeMonths.length).toFixed(1) : 0;
-
-      const kpiTotalEl = document.getElementById('printKpiTotalRepairs');
-      if (kpiTotalEl) kpiTotalEl.textContent = `${totalUnits.toLocaleString()} Units`;
-
-      const kpiBrandsEl = document.getElementById('printKpiActiveBrands');
-      if (kpiBrandsEl) kpiBrandsEl.textContent = `${selectedKeys.length} Brands`;
-
-      const kpiPeakEl = document.getElementById('printKpiPeakMonth');
-      if (kpiPeakEl) kpiPeakEl.textContent = peakMonthStr;
-
-      const kpiAvgEl = document.getElementById('printKpiMonthlyAvg');
-      if (kpiAvgEl) kpiAvgEl.textContent = `${monthlyAvg} /mo`;
-
-      // 3. Populate Itemized Data Table
-      const table = document.getElementById('printDataTable');
-      if (table) {
-        let tableHtml = `
-          <thead>
-            <tr>
-              <th style="text-align: left; min-width: 90px;">Brand Name</th>
-              ${activeMonths.map(m => {
-                const parts = m.split(' ');
-                const shortLabel = parts[0] + (parts[1] ? `'` + parts[1].slice(2) : '');
-                return `<th>${shortLabel}</th>`;
-              }).join('')}
-              <th style="font-weight: 800; background: #e2e8f0;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-        `;
-
-        selectedKeys.forEach(k => {
-          const b = window.RepairData.brands[k];
-          if (!b) return;
-          const vals = (b.monthlyRepairs || []).slice(startIndex);
-          const brandSum = vals.reduce((a, c) => a + (c || 0), 0);
-          tableHtml += `
-            <tr>
-              <td class="brand-col">
-                <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: ${b.color}; margin-right: 4px;"></span>
-                ${b.name}
-              </td>
-              ${vals.map(v => `<td>${v || 0}</td>`).join('')}
-              <td style="font-weight: 700; background: #f8fafc;">${brandSum}</td>
-            </tr>
-          `;
-        });
-
-        // Combined Total Row
-        tableHtml += `
-          <tr class="total-row">
-            <td class="brand-col" style="font-weight: 800;">Combined Total</td>
-            ${monthSums.map(s => `<td style="font-weight: 700;">${s}</td>`).join('')}
-            <td style="font-weight: 900; background: #e2e8f0; color: #0284c7;">${totalUnits}</td>
-          </tr>
-        `;
-
-        tableHtml += `</tbody>`;
-        table.innerHTML = tableHtml;
-      }
-
-      // 4. Render Print Chart into #printChartCanvas
-      const chartCanvas = document.getElementById('printChartCanvas');
-      if (chartCanvas && typeof ApexCharts !== 'undefined') {
-        if (printChartInstance) {
-          try { printChartInstance.destroy(); } catch(e) {}
-        }
-        chartCanvas.innerHTML = '';
-
-        const printSeries = [];
-        const printColors = [];
-
-        selectedKeys.forEach(k => {
-          const b = window.RepairData.brands[k];
-          if (!b) return;
-          printSeries.push({
-            name: b.name,
-            data: (b.monthlyRepairs || []).slice(startIndex)
-          });
-          printColors.push(b.color);
-        });
-
-        const isSingle = (selectedKeys.length === 1);
-        const printOptions = {
-          series: printSeries,
-          chart: {
-            type: isSingle ? 'area' : 'line',
-            height: 250,
-            animations: { enabled: false },
-            toolbar: { show: false },
-            background: '#ffffff',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-          },
-          colors: printColors,
-          stroke: {
-            curve: 'smooth',
-            width: isSingle ? 3 : 2
-          },
-          fill: {
-            type: isSingle ? 'gradient' : 'solid',
-            gradient: {
-              shadeIntensity: 1,
-              opacityFrom: 0.35,
-              opacityTo: 0.05
-            }
-          },
-          dataLabels: { enabled: false },
-          markers: { size: activeMonths.length > 18 ? 2 : 3 },
-          grid: {
-            borderColor: '#e2e8f0',
-            strokeDashArray: 3
-          },
-          xaxis: {
-            categories: activeMonths,
-            labels: {
-              style: { colors: '#475569', fontSize: '8.5px', fontWeight: 600 },
-              rotate: -45,
-              rotateAlways: true
-            }
-          },
-          yaxis: {
-            min: 0,
-            max: isSingle ? 20 : undefined,
-            tickAmount: 4,
-            labels: {
-              style: { colors: '#475569', fontSize: '8.5px' },
-              formatter: val => Math.round(val)
-            }
-          },
-          legend: {
-            show: selectedKeys.length > 1,
-            position: 'top',
-            horizontalAlign: 'right',
-            fontSize: '9px',
-            labels: { colors: '#334155' }
-          }
-        };
-
-        printChartInstance = new ApexCharts(chartCanvas, printOptions);
-        printChartInstance.render();
-      }
-
-      showToast('Preparing A4 Landscape PDF Report...', 'info');
-
-      // Allow chart SVG to mount cleanly before printing
-      setTimeout(() => {
-        window.print();
-      }, 350);
+    downloadButtons.forEach(btn => {
+      btn.addEventListener('click', handleDownload);
     });
   }
 
@@ -1020,32 +1194,112 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!modal) return;
 
-    // Render Month Input Fields inside Modal with Year Dividers
+    // Render Month Input Fields inside Modal with Inline + Tile and Trash Icon
     function buildMonthsInputs() {
       if (!inputsGrid) return;
       const months = window.RepairData.months;
-      let html = '';
-      let currentYear = '';
 
+      // Group months by year
+      const yearGroups = {};
       months.forEach((m, idx) => {
-        const year = m.split(' ')[1] || '';
-        if (year !== currentYear) {
-          currentYear = year;
-          html += `<div class="editor-year-divider">Year ${currentYear}</div>`;
-        }
+        const parts = m.split(' ');
+        const yr = parts[1] || 'Timeline';
+        if (!yearGroups[yr]) yearGroups[yr] = [];
+        yearGroups[yr].push({ monthLabel: m, idx, isLast: (idx === months.length - 1) });
+      });
+
+      const nextM = window.RepairData.getNextMonthLabel();
+      const yearKeys = Object.keys(yearGroups);
+      let html = '';
+
+      yearKeys.forEach((yr, yIdx) => {
+        const group = yearGroups[yr];
+        const isLatestYear = (yIdx === yearKeys.length - 1);
         html += `
-          <div class="month-input-field">
-            <label>${m}</label>
-            <input type="number" min="0" max="100" class="editor-month-val" data-idx="${idx}" value="0" />
+          <div class="editor-year-section">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; padding-bottom: 0.35rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+              <div style="display: flex; align-items: center; gap: 0.55rem;">
+                <span class="editor-year-pill">${yr}</span>
+                <span style="font-size: 0.74rem; font-weight: 600; color: var(--text-muted);">${group.length} Months Logged</span>
+              </div>
+            </div>
+            <div class="editor-year-grid">
+              ${group.map(item => `
+                <div class="month-input-field">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                    <label style="margin: 0; white-space: nowrap; font-size: 0.74rem;">${item.monthLabel}</label>
+                    ${item.isLast && months.length > 1 ? `
+                      <button type="button" class="btn-delete-last-month" id="deleteLastMonthBtn" title="Remove latest month (${item.monthLabel})" aria-label="Remove month">
+                        <i data-lucide="x" style="width: 12px; height: 12px;"></i>
+                      </button>
+                    ` : ''}
+                  </div>
+                  <input type="number" min="0" max="999" class="editor-month-val" data-idx="${item.idx}" value="0" />
+                </div>
+              `).join('')}
+              ${isLatestYear ? `
+                <button type="button" class="month-add-tile" id="tileAddNextMonthBtn" title="Add Next Month (${nextM})">
+                  <i data-lucide="plus" style="width: 18px; height: 18px; color: var(--color-cyan);"></i>
+                  <span style="font-size: 0.72rem; font-weight: 700; color: var(--color-cyan);">+ Next</span>
+                </button>
+              ` : ''}
+            </div>
           </div>
         `;
       });
 
       inputsGrid.innerHTML = html;
+      renderAppIcons(inputsGrid);
 
       inputsGrid.querySelectorAll('.editor-month-val').forEach(input => {
         input.addEventListener('input', updateRunningTotal);
       });
+
+      // Bind '+' tile
+      const addTile = document.getElementById('tileAddNextMonthBtn');
+      if (addTile) {
+        addTile.addEventListener('click', (e) => {
+          e.preventDefault();
+          const res = window.RepairData.addMonth();
+          if (res.success) {
+            persistAllData();
+            buildMonthsInputs();
+            loadCurrentSelectionIntoInputs();
+            if (window.RepairCharts) window.RepairCharts.renderRepairTimelineChart();
+            renderBrandMonthlyItemsTable(brandSelect.value);
+            renderBrandModelsPanel(brandSelect.value);
+            updateDashboardTimelineBadges();
+            showToast(`Added ${res.added} to timeline`, 'success');
+          } else {
+            showToast(res.reason || 'Could not add month', 'info');
+          }
+        });
+      }
+
+      // Bind delete last month button
+      const delBtn = document.getElementById('deleteLastMonthBtn');
+      if (delBtn) {
+        delBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const lastM = months[months.length - 1];
+          if (confirm(`Are you sure you want to delete the latest month (${lastM})?`)) {
+            const res = window.RepairData.deleteLastMonth();
+            if (res.success) {
+              persistAllData();
+              buildMonthsInputs();
+              loadCurrentSelectionIntoInputs();
+              if (window.RepairCharts) window.RepairCharts.renderRepairTimelineChart();
+              renderBrandMonthlyItemsTable(brandSelect.value);
+              renderBrandModelsPanel(brandSelect.value);
+              updateDashboardTimelineBadges();
+              showToast(`Deleted ${res.removed} from timeline`, 'info');
+            } else {
+              showToast(res.reason || 'Could not delete month', 'warning');
+            }
+          }
+        });
+      }
 
       updateDashboardTimelineBadges();
     }
@@ -1079,12 +1333,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const modelNames = Object.keys(b.models || {});
       
       let optionsHtml = `
-        <option value="">-- General Brand Total (No Model Selected) --</option>
+        <option value="" style="color: var(--text-muted); font-style: italic; opacity: 0.75;">-- General Brand Total (No Model Selected) --</option>
       `;
 
       if (modelNames.length > 0) {
         optionsHtml += modelNames.map(m => `
-          <option value="${m}">Model: ${m}</option>
+          <option value="${m}">${m}</option>
         `).join('');
       }
 
@@ -1463,6 +1717,90 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // =========================================================================
+    // Edit Mobile Brand Modal (Name & Color Customization)
+    // =========================================================================
+    const editBrandModal = document.getElementById('editBrandModal');
+    const closeEditBrandBtn = document.getElementById('closeEditBrandModalBtn');
+    const cancelEditBrandBtn = document.getElementById('cancelEditBrandBtn');
+    const saveEditBrandBtn = document.getElementById('saveEditBrandBtn');
+    const editBrandKeyInput = document.getElementById('editBrandKeyInput');
+    const editBrandNameInput = document.getElementById('editBrandNameInput');
+    const editBrandColorInput = document.getElementById('editBrandColorInput');
+    const editBrandColorHex = document.getElementById('editBrandColorHex');
+
+    if (editBrandColorInput && editBrandColorHex) {
+      editBrandColorInput.addEventListener('input', (e) => {
+        editBrandColorHex.textContent = e.target.value;
+      });
+    }
+
+    window.openEditBrandModal = function(brandKey) {
+      const b = window.RepairData.brands[brandKey];
+      if (!b || !editBrandModal) return;
+      if (editBrandKeyInput) editBrandKeyInput.value = brandKey;
+      if (editBrandNameInput) editBrandNameInput.value = b.name;
+      const brandColor = b.color || '#6366f1';
+      if (editBrandColorInput) editBrandColorInput.value = brandColor;
+      if (editBrandColorHex) editBrandColorHex.textContent = brandColor;
+      editBrandModal.classList.add('show');
+      if (editBrandNameInput) {
+        setTimeout(() => editBrandNameInput.focus(), 60);
+      }
+    };
+
+    function closeEditBrandModal() {
+      if (editBrandModal) editBrandModal.classList.remove('show');
+    }
+
+    if (closeEditBrandBtn) closeEditBrandBtn.addEventListener('click', closeEditBrandModal);
+    if (cancelEditBrandBtn) cancelEditBrandBtn.addEventListener('click', closeEditBrandModal);
+    if (editBrandModal) {
+      editBrandModal.addEventListener('click', (e) => {
+        if (e.target === editBrandModal) closeEditBrandModal();
+      });
+    }
+
+    if (saveEditBrandBtn) {
+      saveEditBrandBtn.addEventListener('click', () => {
+        const brandKey = editBrandKeyInput ? editBrandKeyInput.value : '';
+        const b = window.RepairData.brands[brandKey];
+        if (!b) {
+          closeEditBrandModal();
+          return;
+        }
+
+        const newName = editBrandNameInput ? editBrandNameInput.value.trim() : '';
+        if (!newName) {
+          showToast('Please enter a Brand Name', 'warning');
+          return;
+        }
+
+        const newColor = editBrandColorInput ? editBrandColorInput.value : b.color;
+        const oldName = b.name;
+        const oldColor = b.color;
+
+        b.name = newName;
+        b.color = newColor;
+
+        persistAllData();
+        logSystemUpdate(`Brand Updated: ${b.name}`, `Renamed to "${b.name}" and updated color to ${newColor}.`);
+        closeEditBrandModal();
+
+        // Refresh UI components
+        renderBrandsManager(searchInput ? searchInput.value : '');
+        initBrandSearchDropdown();
+        if (typeof window.SawanaSyncBrandFilterUI === 'function') {
+          window.SawanaSyncBrandFilterUI();
+        }
+        window.RepairCharts.renderBrandShareDonut();
+        window.RepairCharts.renderRepairTimelineChart();
+        renderBrandModelsPanel(window.RepairCharts.selectedBrand || 'ALL');
+
+        showToast(`Brand updated: ${b.name}`, 'success');
+      });
+    }
+
     // Live search filter in Brands Manager
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
@@ -1553,9 +1891,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const isRenameAllowed = localStorage.getItem('sawana_setting_brand_rename') === 'true';
-      const renameBtnHtml = isRenameAllowed ? `
-        <button type="button" class="brand-rename-btn" data-brand="${k}" title="Rename ${b.name}">
+      const brandActionsHtml = isRenameAllowed ? `
+        <button type="button" class="brand-rename-btn" data-brand="${k}" title="Edit ${b.name} Name & Color">
           <i data-lucide="pencil" style="width: 13px; height: 13px;"></i>
+        </button>
+        <button type="button" class="brand-delete-btn" data-brand="${k}" title="Permanently Delete ${b.name}">
+          <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
         </button>
       ` : '';
 
@@ -1565,7 +1906,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="brand-mgmt-title-wrap">
               <span class="brand-mgmt-color-dot" style="background: ${b.color}; color: ${b.color};"></span>
               <span class="brand-mgmt-name">${b.name}</span>
-              ${renameBtnHtml}
+              ${brandActionsHtml}
             </div>
             <span class="brand-mgmt-total-badge" style="background: ${b.color}15; color: ${b.color}; border-color: ${b.color}35;">
               ${totalRepairs} Total Units
@@ -1583,7 +1924,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <input 
               type="text" 
               class="brand-mgmt-add-input" 
-              placeholder="+ Add Model (e.g. Galaxy S25 / Honor 200)..." 
+              placeholder="+ Add Model..." 
               autocomplete="off"
             />
             <button type="submit" class="brand-mgmt-add-btn">
@@ -1705,45 +2046,165 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // 4. Brand rename button (if enabled in settings)
+    // 4. Brand edit button (name & color customization modal)
     grid.querySelectorAll('.brand-rename-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const brandKey = btn.getAttribute('data-brand');
+        if (typeof window.openEditBrandModal === 'function') {
+          window.openEditBrandModal(brandKey);
+        }
+      });
+    });
+
+    // 5. Brand permanent delete button
+    grid.querySelectorAll('.brand-delete-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const brandKey = btn.getAttribute('data-brand');
         const b = window.RepairData.brands[brandKey];
         if (!b) return;
-        const newName = prompt(`Enter new brand name for "${b.name}":`, b.name);
-        if (!newName || !newName.trim() || newName.trim() === b.name) return;
-        const oldName = b.name;
-        b.name = newName.trim();
+
+        const totalRepairs = (b.monthlyRepairs || []).reduce((acc, v) => acc + (v || 0), 0);
+        const confirmMsg = `Are you sure you want to permanently delete "${b.name}" (${totalRepairs} logged repairs)?\n\nThis will completely remove the brand and all its models from the system. This action cannot be undone.`;
+        if (!window.confirm(confirmMsg)) return;
+
+        const brandName = b.name;
+        delete window.RepairData.brands[brandKey];
+
+        if (window.RepairCharts.selectedBrands) {
+          window.RepairCharts.selectedBrands = window.RepairCharts.selectedBrands.filter(k => k !== brandKey);
+          if (window.RepairCharts.selectedBrands.length === 0) {
+            window.RepairCharts.selectedBrands = Object.keys(window.RepairData.brands);
+          }
+        }
+        if (window.RepairCharts.selectedBrand === brandKey) {
+          window.RepairCharts.selectedBrand = 'ALL';
+        }
+        if (window.RepairCharts.highlightedDonutBrand === brandKey) {
+          window.RepairCharts.highlightedDonutBrand = null;
+        }
+
         persistAllData();
-        logSystemUpdate(`Brand Renamed: ${b.name}`, `Renamed brand from "${oldName}" to "${b.name}".`);
+        logSystemUpdate(`Brand Deleted: ${brandName}`, `Permanently deleted brand "${brandName}" and all associated repair records.`);
+
         renderBrandsManager(query);
         initBrandSearchDropdown();
+        if (typeof window.SawanaSyncBrandFilterUI === 'function') {
+          window.SawanaSyncBrandFilterUI();
+        }
         window.RepairCharts.renderBrandShareDonut();
         window.RepairCharts.renderRepairTimelineChart();
-        showToast(`Brand renamed to ${b.name}`, 'success');
+        renderBrandModelsPanel(window.RepairCharts.selectedBrand || 'ALL');
+
+        showToast(`Brand "${brandName}" permanently deleted`, 'warning');
       });
     });
   }
 
   /**
    * Render Selected Brand Phone Models Breakdown Panel (Replaces Fault Category Diagnostics)
+   * Supports:
+   * 1. Dynamic calculation across active filtered timeframe ([startIndex, endIndex])
+   * 2. All Brands mode: descending ranking of brands by repair volume
+   * 3. Specific Brand mode: descending ranking of phone models for that brand
+   * 4. Real-time hover preview from Donut chart slices & interactive legend
    */
-  function renderBrandModelsPanel(brandKey) {
+  function renderBrandModelsPanel(brandKey, isHoverPreview = false) {
     const container = document.getElementById('brandModelsList');
     if (!container) return;
 
-    const brand = window.RepairData.brands[brandKey] || window.RepairData.brands['SAMSUNG'];
     const titleEl = document.getElementById('brandModelsPanelTitle');
     const badgeEl = document.getElementById('brandModelsPanelBadge');
     const subtitleEl = document.getElementById('brandModelsPanelSubtitle');
+
+    const isAll = (!brandKey || brandKey === 'ALL');
+
+    // Slicing strictly within the active time range (3M, 6M, 12M, Custom, or ALL)
+    const { startIndex, endIndex } = (window.RepairCharts && typeof window.RepairCharts.getActiveTimeRangeIndices === 'function')
+      ? window.RepairCharts.getActiveTimeRangeIndices()
+      : { startIndex: 0, endIndex: (window.RepairData.months || []).length };
+    const allMonths = window.RepairData.months || [];
+    const activeMonths = allMonths.slice(startIndex, endIndex);
+    const timeframeLabel = activeMonths.length > 0
+      ? (activeMonths.length === allMonths.length ? `All Months (${activeMonths.length}M)` : `${activeMonths[0]} – ${activeMonths[activeMonths.length - 1]}`)
+      : 'Active Timeline';
+
+    if (isAll) {
+      // MODE A: All Brands Active -> Display Brands ranked from highest to lowest repair sales strictly across filtered timeframe
+      if (titleEl) {
+        titleEl.textContent = 'Phone Brands Repair Ranking';
+      }
+      if (badgeEl) {
+        badgeEl.textContent = 'ALL BRANDS';
+        badgeEl.style.background = 'rgba(99, 102, 241, 0.18)';
+        badgeEl.style.color = '#818cf8';
+        badgeEl.style.border = '1px solid rgba(129, 140, 248, 0.4)';
+      }
+
+      // Collect all registered brands and calculate total units in active timeframe
+      const brandRanking = Object.keys(window.RepairData.brands).map(bKey => {
+        const b = window.RepairData.brands[bKey];
+        const sliced = (b.monthlyRepairs || []).slice(startIndex, endIndex);
+        const total = sliced.reduce((acc, v) => acc + (v || 0), 0);
+        const modelCount = Object.keys(b.models || {}).length;
+        return {
+          key: bKey,
+          name: b.name,
+          color: b.color,
+          total: total,
+          modelCount: modelCount
+        };
+      }).sort((a, b) => b.total - a.total);
+
+      const grandTotal = brandRanking.reduce((acc, b) => acc + b.total, 0) || 1;
+      const highestTotal = brandRanking.length > 0 ? (brandRanking[0].total || 1) : 1;
+
+      if (subtitleEl) {
+        subtitleEl.textContent = `Ranking of ${brandRanking.length} mobile brands by repair sales across ${timeframeLabel} (${grandTotal} total units).`;
+      }
+
+      container.innerHTML = brandRanking.map((b, idx) => {
+        const pct = ((b.total / grandTotal) * 100).toFixed(1);
+        const barWidth = Math.min(100, Math.max(Math.round((b.total / highestTotal) * 100), 4));
+        return `
+          <div class="brand-model-item" style="cursor: pointer;" onclick="window.SawanaSelectBrandFromDonut && window.SawanaSelectBrandFromDonut('${b.key}')" title="Click to view ${b.name} phone models">
+            <div class="brand-model-row">
+              <div class="brand-model-title-wrap">
+                <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); width: 18px; text-align: left;">#${idx + 1}</span>
+                <span style="width: 9px; height: 9px; border-radius: 50%; background: ${b.color}; flex-shrink: 0; box-shadow: 0 0 6px ${b.color}80;"></span>
+                <span class="brand-model-name">${b.name}</span>
+                <span style="font-size: 0.69rem; font-weight: 600; color: var(--text-muted); margin-left: 4px;">
+                  ${b.modelCount > 0 ? `(${b.modelCount} models)` : '(Direct Brand)'}
+                </span>
+              </div>
+              <span class="brand-model-units-badge" style="background: ${b.color}18; color: ${b.color}; border: 1px solid ${b.color}35;">
+                ${b.total} Units
+              </span>
+            </div>
+            <div class="brand-model-bar-wrap">
+              <div class="brand-model-progress-bg">
+                <div class="brand-model-progress-fill" style="width: ${barWidth}%; background: ${b.color};"></div>
+              </div>
+              <span class="brand-model-pct">${pct}%</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      renderAppIcons(container);
+      return;
+    }
+
+    // MODE B: Specific Brand Selected / Hover Preview
+    const brand = window.RepairData.brands[brandKey];
+    if (!brand) return;
 
     if (titleEl) {
       titleEl.textContent = `${brand.name} Phone Models`;
     }
     if (badgeEl) {
-      badgeEl.textContent = brand.name;
+      badgeEl.textContent = isHoverPreview ? `${brand.name} (Hover Preview)` : brand.name;
       badgeEl.style.background = `${brand.color}22`;
       badgeEl.style.color = brand.color;
       badgeEl.style.border = `1px solid ${brand.color}55`;
@@ -1751,58 +2212,109 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const models = brand.models || {};
     const modelNames = Object.keys(models);
-    const totalBrandRepairs = (brand.monthlyRepairs || []).reduce((acc, v) => acc + (v || 0), 0);
+    const slicedBrandRepairs = (brand.monthlyRepairs || []).slice(startIndex, endIndex);
+    const totalBrandRepairs = slicedBrandRepairs.reduce((acc, v) => acc + (v || 0), 0);
 
     if (subtitleEl) {
-      subtitleEl.textContent = `${modelNames.length} Models registered • ${totalBrandRepairs} Total brand units across timeline.`;
+      subtitleEl.textContent = `${modelNames.length} Models registered under ${brand.name} • ${totalBrandRepairs} Total brand units across ${timeframeLabel}.`;
     }
 
     if (modelNames.length === 0) {
       container.innerHTML = `
         <div style="text-align: center; padding: 2.2rem 1rem; color: var(--text-muted);">
-          <i data-lucide="smartphone" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
-          <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 0.4rem;">
-            No individual models registered for <strong>${brand.name}</strong> yet.
-          </p>
-          <p style="font-size: 0.78rem;">
-            All repairs are tracked under General Brand Total (${totalBrandRepairs} Units). Models can be created and managed in the Brands &amp; Models hub.
+          <i data-lucide="smartphone" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.45;"></i>
+          <p style="font-size: 0.88rem; color: var(--text-secondary); margin: 0;">
+            All repairs are tracked under General Brand Total (${totalBrandRepairs} Units). Models can be created and managed in the Brands & Models hub.
           </p>
         </div>
       `;
-
       renderAppIcons(container);
       return;
     }
 
-    // Sort models by total repaired units descending
+    // Sort strictly this brand's models by repaired units in filtered timeframe descending
     const sortedModels = modelNames.map(mName => {
-      const units = (models[mName] || []).reduce((acc, v) => acc + (v || 0), 0);
+      const slicedUnits = (models[mName] || []).slice(startIndex, endIndex);
+      const units = slicedUnits.reduce((acc, v) => acc + (v || 0), 0);
       const pct = totalBrandRepairs > 0 ? ((units / totalBrandRepairs) * 100).toFixed(1) : 0;
       return { name: mName, units, pct };
     }).sort((a, b) => b.units - a.units);
 
-    container.innerHTML = sortedModels.map(m => `
-      <div class="brand-model-item">
-        <div class="brand-model-row">
-          <div class="brand-model-title-wrap">
-            <i data-lucide="smartphone" style="width: 15px; height: 15px; color: ${brand.color};"></i>
-            <span class="brand-model-name">${m.name}</span>
+    const highestModelUnits = sortedModels.length > 0 ? (sortedModels[0].units || 1) : 1;
+
+    container.innerHTML = sortedModels.map(m => {
+      const barWidth = Math.min(100, Math.max(Math.round((m.units / highestModelUnits) * 100), 3));
+      return `
+        <div class="brand-model-item">
+          <div class="brand-model-row">
+            <div class="brand-model-title-wrap">
+              <i data-lucide="smartphone" style="width: 15px; height: 15px; color: ${brand.color};"></i>
+              <span class="brand-model-name">${m.name}</span>
+            </div>
+            <span class="brand-model-units-badge" style="background: ${brand.color}18; color: ${brand.color}; border: 1px solid ${brand.color}35;">
+              ${m.units} Units
+            </span>
           </div>
-          <span class="brand-model-units-badge" style="background: ${brand.color}18; color: ${brand.color}; border: 1px solid ${brand.color}35;">
-            ${m.units} Units
-          </span>
-        </div>
-        <div class="brand-model-bar-wrap">
-          <div class="brand-model-progress-bg">
-            <div class="brand-model-progress-fill" style="width: ${Math.min(100, Math.max(parseFloat(m.pct), 3))}%; background: ${brand.color};"></div>
+          <div class="brand-model-bar-wrap">
+            <div class="brand-model-progress-bg">
+              <div class="brand-model-progress-fill" style="width: ${barWidth}%; background: ${brand.color};"></div>
+            </div>
+            <span class="brand-model-pct">${m.pct}%</span>
           </div>
-          <span class="brand-model-pct">${m.pct}%</span>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
     renderAppIcons(container);
   }
+
+  window.SawanaPreviewBrandModels = function(brandKey) {
+    if (!brandKey || !window.RepairData.brands[brandKey]) return;
+    renderBrandModelsPanel(brandKey, true);
+  };
+
+  window.SawanaRestoreBrandModels = function() {
+    const pinnedBrand = window.RepairCharts?.highlightedDonutBrand;
+    if (pinnedBrand && window.RepairData.brands[pinnedBrand]) {
+      renderBrandModelsPanel(pinnedBrand, false);
+      return;
+    }
+    const selBrand = window.RepairCharts?.selectedBrand;
+    if (selBrand && selBrand !== 'ALL' && selBrand !== 'MULTI' && window.RepairData.brands[selBrand]) {
+      renderBrandModelsPanel(selBrand, false);
+      return;
+    }
+    renderBrandModelsPanel('ALL', false);
+  };
+
+  window.SawanaRenderBrandModelsPanel = function(brandKey) {
+    renderBrandModelsPanel(brandKey || 'ALL', false);
+  };
+
+  window.SawanaSelectBrandFromDonut = function(brandKey) {
+    if (!brandKey) {
+      // Toggled OFF: restore models panel to filter selected brand or All Brands
+      const defaultBrand = (window.RepairCharts && window.RepairCharts.selectedBrand)
+        ? window.RepairCharts.selectedBrand
+        : 'ALL';
+      renderBrandModelsPanel(defaultBrand);
+      const card = document.getElementById('brandModelsBreakdownCard');
+      if (card) {
+        card.classList.remove('card-focus-pulse');
+      }
+      showToast('Cleared brand highlight', 'info');
+      return;
+    }
+    if (!window.RepairData.brands[brandKey]) return;
+    renderBrandModelsPanel(brandKey);
+    const card = document.getElementById('brandModelsBreakdownCard');
+    if (card) {
+      card.classList.remove('card-focus-pulse');
+      void card.offsetWidth; // trigger reflow
+      card.classList.add('card-focus-pulse');
+    }
+    showToast(`Viewing ${window.RepairData.brands[brandKey].name} Phone Models`, 'info');
+  };
 
   /**
    * Helper to prompt and add model under selected brand
@@ -1810,7 +2322,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function promptAndAddModel(brandKey) {
     const brand = window.RepairData.brands[brandKey];
     if (!brand) return;
-    const modelName = prompt(`Enter new phone model for ${brand.name} (e.g. Galaxy S25 / Note 13):`);
+    const modelName = prompt(`Enter new phone model for ${brand.name}:`);
     if (!modelName || !modelName.trim()) return;
     const trimmed = modelName.trim();
     if (!brand.models) brand.models = {};
@@ -1830,16 +2342,40 @@ document.addEventListener('DOMContentLoaded', () => {
    * Setup Event Listeners
    */
   function setupDashboardEvents() {
-    // Time Horizon Switcher: All Months, 12 Months, 6 Months
+    // Time Horizon Switcher: All Months, 12M, 6M, 3M, Custom
     const rangeBtns = [
       document.getElementById('rangeBtnAll'),
       document.getElementById('rangeBtn12'),
-      document.getElementById('rangeBtn6')
+      document.getElementById('rangeBtn6'),
+      document.getElementById('rangeBtn3')
     ].filter(Boolean);
+
+    const customBtn = document.getElementById('rangeBtnCustom');
+    const customPopover = document.getElementById('customRangePopover');
+    const customStartSel = document.getElementById('customRangeStartSelect');
+    const customEndSel = document.getElementById('customRangeEndSelect');
+    const applyCustomBtn = document.getElementById('applyCustomRangeBtn');
+    const resetCustomBtn = document.getElementById('resetCustomRangeBtn');
+    const closeCustomBtn = document.getElementById('closeCustomRangeBtn');
+    const customBtnText = document.getElementById('rangeBtnCustomText');
+
+    function populateCustomRangeDropdowns() {
+      if (!customStartSel || !customEndSel) return;
+      const months = window.RepairData.months;
+      const opts = months.map((m, idx) => `<option value="${idx}">${m}</option>`).join('');
+      customStartSel.innerHTML = opts;
+      customEndSel.innerHTML = opts;
+      customStartSel.value = "0";
+      customEndSel.value = String(months.length - 1);
+    }
+    populateCustomRangeDropdowns();
 
     rangeBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         rangeBtns.forEach(b => b.classList.remove('active'));
+        if (customBtn) customBtn.classList.remove('active');
+        if (customPopover) customPopover.classList.remove('show');
+        if (customBtnText) customBtnText.textContent = 'Custom';
         btn.classList.add('active');
         const raw = btn.getAttribute('data-range') || 'ALL';
         const count = raw === 'ALL' ? 'ALL' : parseInt(raw, 10);
@@ -1847,6 +2383,70 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast(`Timeline timeframe: ${count === 'ALL' ? `All Months (${window.RepairData.months.length}M)` : `Last ${count} Months`}`, 'info');
       });
     });
+
+    if (customBtn && customPopover) {
+      customBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        populateCustomRangeDropdowns();
+        customPopover.classList.toggle('show');
+      });
+
+      if (closeCustomBtn) {
+        closeCustomBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          customPopover.classList.remove('show');
+        });
+      }
+
+      customPopover.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!customPopover.contains(e.target) && !customBtn.contains(e.target)) {
+          customPopover.classList.remove('show');
+        }
+      });
+    }
+
+    if (applyCustomBtn) {
+      applyCustomBtn.addEventListener('click', () => {
+        const months = window.RepairData.months;
+        const sIdx = parseInt(customStartSel.value || 0, 10);
+        const eIdx = parseInt(customEndSel.value || (months.length - 1), 10);
+        let startIdx = Math.min(sIdx, eIdx);
+        let endIdx = Math.max(sIdx, eIdx);
+        let count = endIdx - startIdx + 1;
+
+        // Enforce maximum 24-month horizon limit
+        if (count > 24) {
+          showToast('Custom range clamped: Maximum allowable time horizon is 24 months.', 'warning');
+          startIdx = Math.max(0, endIdx - 23);
+          count = endIdx - startIdx + 1;
+          customStartSel.value = String(startIdx);
+        }
+
+        const startM = months[startIdx];
+        const endM = months[endIdx];
+
+        rangeBtns.forEach(b => b.classList.remove('active'));
+        if (customBtn) customBtn.classList.add('active');
+        if (customBtnText) customBtnText.textContent = `${startM} – ${endM}`;
+        if (customPopover) customPopover.classList.remove('show');
+
+        window.RepairCharts.setCustomTimeRange(startIdx, endIdx);
+        showToast(`Custom timeframe: ${startM} – ${endM} (${count} Months)`, 'success');
+      });
+    }
+
+    if (resetCustomBtn) {
+      resetCustomBtn.addEventListener('click', () => {
+        if (customBtnText) customBtnText.textContent = 'Custom';
+        if (customPopover) customPopover.classList.remove('show');
+        const allBtn = document.getElementById('rangeBtnAll');
+        if (allBtn) allBtn.click();
+      });
+    }
 
     // Quick Add Model from Phone Models Breakdown Panel
     const panelQuickAddBtn = document.getElementById('panelQuickAddModelBtn');
@@ -1863,22 +2463,43 @@ document.addEventListener('DOMContentLoaded', () => {
       themeBtn.addEventListener('click', toggleTheme);
     }
 
-    // Sidebar Auto-Collapse on Mouse Leave (immediate)
+    // Sidebar Auto-Collapse on Mouse Leave (smooth lightweight reflow)
     const sidebar = document.getElementById('sidebar');
     const collapseBtn = document.getElementById('collapseSidebarBtn');
+
+    let chartResizeTimer = null;
+    function triggerSmoothChartResize() {
+      if (chartResizeTimer) clearTimeout(chartResizeTimer);
+      chartResizeTimer = setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+        chartResizeTimer = null;
+      }, 410);
+    }
+
+    const mainWrapper = document.querySelector('.main-wrapper');
+    if (mainWrapper) {
+      mainWrapper.addEventListener('transitionend', (e) => {
+        if (e.propertyName === 'margin-left') {
+          window.dispatchEvent(new Event('resize'));
+        }
+      });
+    }
 
     if (sidebar) {
       sidebar.addEventListener('mouseenter', () => {
         sidebar.classList.remove('collapsed');
+        triggerSmoothChartResize();
       });
       sidebar.addEventListener('mouseleave', () => {
         sidebar.classList.add('collapsed');
+        triggerSmoothChartResize();
       });
     }
 
     if (collapseBtn && sidebar) {
       collapseBtn.addEventListener('click', () => {
         sidebar.classList.toggle('collapsed');
+        triggerSmoothChartResize();
       });
     }
 
@@ -1886,21 +2507,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportBtn = document.getElementById('exportReportBtn');
     if (exportBtn) {
       exportBtn.addEventListener('click', exportMonthlyItemsCSV);
-    }
-
-    // Notification dropdown
-    const notifBtn = document.getElementById('notificationBtn');
-    const notifDropdown = document.getElementById('notificationsDropdown');
-    if (notifBtn && notifDropdown) {
-      notifBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        notifDropdown.classList.toggle('show');
-      });
-      document.addEventListener('click', (e) => {
-        if (!notifDropdown.contains(e.target) && e.target !== notifBtn) {
-          notifDropdown.classList.remove('show');
-        }
-      });
     }
   }
 
@@ -1956,17 +2562,30 @@ document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('repair_theme', next);
     updateThemeIcon(next);
-    if (window.RepairCharts && typeof window.RepairCharts.renderRepairTimelineChart === 'function') {
-      window.RepairCharts.renderRepairTimelineChart();
+    if (window.RepairCharts) {
+      if (typeof window.RepairCharts.renderRepairTimelineChart === 'function') {
+        window.RepairCharts.renderRepairTimelineChart();
+      }
+      if (typeof window.RepairCharts.renderBrandShareDonut === 'function') {
+        window.RepairCharts.renderBrandShareDonut();
+      }
+      if (typeof window.RepairCharts.renderFaultCategoryChart === 'function') {
+        window.RepairCharts.renderFaultCategoryChart();
+      }
     }
-    showToast(`Switched to ${next} theme`, 'info');
+    showToast(`Switched to ${next === 'dark' ? 'Dark Mode' : 'Light Mode'}`, 'info');
   }
 
   function updateThemeIcon(theme) {
     const iconEl = document.getElementById('themeToggleIcon');
-    if (!iconEl) return;
-    iconEl.setAttribute('data-lucide', theme === 'dark' ? 'sun' : 'moon');
-    renderAppIcons(iconEl.parentElement || document);
+    const labelEl = document.getElementById('themeToggleLabelText');
+    if (iconEl) {
+      iconEl.setAttribute('data-lucide', theme === 'dark' ? 'sun' : 'moon');
+    }
+    if (labelEl) {
+      labelEl.textContent = theme === 'dark' ? 'Dark Mode' : 'Light Mode';
+    }
+    renderAppIcons(iconEl ? (iconEl.parentElement || document) : document);
   }
 
   /**
@@ -2038,9 +2657,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.SawanaSetKpiVisibility = applyKpiVisibility;
 
-    // Load saved preference (Default: true)
+    // Load saved preference (Default: false / OFF as requested)
     const saved = localStorage.getItem('sawana_show_kpi_cards');
-    const isVisible = (saved === null || saved === 'true');
+    const isVisible = (saved === 'true'); // Default is FALSE (OFF)!
     applyKpiVisibility(isVisible);
 
     if (overviewSwitch) {
@@ -2052,7 +2671,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Toast System
+   * Toast System (Right-Hand Screen Origin, Max 3 Notifications Stack)
    */
   function showToast(message, type = 'info') {
     let container = document.getElementById('toastContainer');
@@ -2063,11 +2682,28 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.appendChild(container);
     }
 
+    // Limit to maximum 3 notifications: when a new one arrives, dismiss the oldest (top one)
+    const existingToasts = container.querySelectorAll('.toast:not(.toast-dismissing)');
+    if (existingToasts.length >= 3) {
+      const oldest = existingToasts[0];
+      oldest.classList.add('toast-dismissing');
+      oldest.style.transition = 'opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1), transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.28s ease, margin 0.28s ease';
+      oldest.style.opacity = '0';
+      oldest.style.transform = 'translateX(40px) scale(0.85)';
+      oldest.style.maxHeight = '0';
+      oldest.style.marginBottom = '0';
+      oldest.style.paddingTop = '0';
+      oldest.style.paddingBottom = '0';
+      setTimeout(() => {
+        if (oldest.parentNode) oldest.remove();
+      }, 280);
+    }
+
     const toast = document.createElement('div');
     toast.className = `toast ${type === 'success' ? 'toast-success' : 'toast-info'}`;
-    const iconName = type === 'success' ? 'check-circle-2' : 'info';
+    const iconName = type === 'success' ? 'check-circle-2' : 'bell';
     toast.innerHTML = `
-      <i data-lucide="${iconName}" style="width: 18px; height: 18px; color: ${type === 'success' ? 'var(--color-emerald)' : 'var(--color-cyan)'};"></i>
+      <i data-lucide="${iconName}" style="width: 16px; height: 16px; flex-shrink: 0; color: ${type === 'success' ? 'var(--color-emerald)' : 'var(--color-cyan)'};"></i>
       <span>${message}</span>
     `;
 
@@ -2075,11 +2711,16 @@ document.addEventListener('DOMContentLoaded', () => {
     renderAppIcons(toast);
 
     setTimeout(() => {
-      toast.style.transition = 'opacity 0.4s, transform 0.4s';
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateX(100%)';
-      setTimeout(() => toast.remove(), 400);
-    }, 3200);
+      if (toast.parentNode && !toast.classList.contains('toast-dismissing')) {
+        toast.classList.add('toast-dismissing');
+        toast.style.transition = 'opacity 0.32s cubic-bezier(0.4, 0, 0.2, 1), transform 0.32s cubic-bezier(0.4, 0, 0.2, 1)';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(40px) scale(0.85)';
+        setTimeout(() => {
+          if (toast.parentNode) toast.remove();
+        }, 320);
+      }
+    }, 3800);
   }
 
   window.showToast = showToast;

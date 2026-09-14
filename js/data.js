@@ -1486,29 +1486,45 @@ window.RepairData = {
       }
     });
 
-    // Enforce strict Max 24-Month Window (Drop oldest month)
-    let droppedMonth = null;
-    if (this.months.length > this.MAX_MONTHS) {
-      droppedMonth = this.months.shift();
-      Object.keys(this.brands).forEach(k => {
-        const b = this.brands[k];
-        if (b.monthlyRepairs && b.monthlyRepairs.length > this.MAX_MONTHS) {
-          b.monthlyRepairs.shift();
-        }
-        if (b.models) {
-          Object.keys(b.models).forEach(m => {
-            if (b.models[m] && b.models[m].length > this.MAX_MONTHS) {
-              b.models[m].shift();
-            }
-          });
-        }
-      });
-    }
-
+    // Historical data is strictly preserved and NEVER purged.
+    // The chart and custom filter horizons allow viewing up to 24 months at a time.
     return {
       success: true,
       added: monthToAdd,
-      dropped: droppedMonth,
+      dropped: null,
+      totalMonths: this.months.length
+    };
+  },
+
+  /**
+   * Delete the latest (most recently added) month from the timeline.
+   * Keeps at least 1 month.
+   */
+  deleteLastMonth() {
+    if (this.months.length <= 1) {
+      return { success: false, reason: 'At least one month is required' };
+    }
+
+    const removedMonth = this.months.pop();
+
+    // Pop the last entry for all brands and models
+    Object.keys(this.brands).forEach(k => {
+      const b = this.brands[k];
+      if (Array.isArray(b.monthlyRepairs) && b.monthlyRepairs.length > this.months.length) {
+        b.monthlyRepairs.pop();
+      }
+      if (b.models) {
+        Object.keys(b.models).forEach(m => {
+          if (Array.isArray(b.models[m]) && b.models[m].length > this.months.length) {
+            b.models[m].pop();
+          }
+        });
+      }
+    });
+
+    return {
+      success: true,
+      removed: removedMonth,
       totalMonths: this.months.length
     };
   }

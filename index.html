@@ -59,16 +59,17 @@
     </nav>
 
     <div class="sidebar-footer">
-      <div class="system-status-card">
-        <div class="status-header">
-          <span>Workshop Capacity</span>
-          <strong>84%</strong>
-        </div>
-        <div class="progress-bar-wrap">
-          <div class="progress-fill" style="width: 84%; background: var(--gradient-primary);"></div>
-        </div>
-        <div style="font-size: 0.72rem; color: var(--text-muted);">
-          14 Active Repairs in Benches
+      <!-- Theme Toggle & Notifications in sidebar footer -->
+      <div class="sidebar-footer-actions">
+        <!-- Dark/Light Theme Switcher -->
+        <button class="sidebar-icon-btn" id="themeToggleBtn" title="Toggle Theme" aria-label="Toggle Theme">
+          <i data-lucide="sun" id="themeToggleIcon" style="width: 18px; height: 18px; flex-shrink:0;"></i>
+          <span class="nav-text" id="themeToggleLabelText" style="font-size:0.82rem;font-weight:600;">Light Mode</span>
+        </button>
+
+        <!-- Developer Watermark -->
+        <div class="developer-watermark" title="Sawana Care Analytics - Developed By Dinusha">
+          <span>Developed By Dinusha</span>
         </div>
       </div>
     </div>
@@ -78,56 +79,6 @@
        MAIN WRAPPER & HEADER
        ========================================================================= -->
   <div class="main-wrapper">
-    <!-- Top Sticky Header -->
-    <header class="top-header">
-      <div class="header-left">
-        <span style="font-family: 'Outfit', sans-serif; font-size: 1.05rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; white-space: nowrap;">Sawana Care</span>
-      </div>
-
-      <div class="header-right">
-        <!-- Version Badge Pill -->
-        <div class="version-pill" id="headerVersionPill" title="Sawana Platform Version">
-          <span class="version-dot"></span>
-          <span id="appVersionText">v1.6</span>
-        </div>
-
-        <!-- Dark/Light Theme Switcher -->
-        <button class="icon-btn" id="themeToggleBtn" title="Toggle Theme" aria-label="Toggle Theme">
-          <i data-lucide="sun" id="themeToggleIcon" style="width: 18px; height: 18px;"></i>
-        </button>
-
-        <!-- Notification Bell & Dropdown -->
-        <div style="position: relative;">
-          <button class="icon-btn" id="notificationBtn" title="Notifications" aria-label="Notifications">
-            <i data-lucide="bell" style="width: 18px; height: 18px;"></i>
-            <span class="notification-badge"></span>
-          </button>
-          <div class="dropdown-menu" id="notificationsDropdown" style="width: 320px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border-color);">
-              <div style="display: flex; align-items: center; gap: 0.45rem;">
-                <strong style="font-size: 0.85rem;">System Activity & Updates</strong>
-                <span id="notifDropdownVersionPill" class="version-tag">v1.6</span>
-              </div>
-              <span id="clearNotificationsBtn" style="font-size: 0.72rem; color: var(--color-primary); cursor: pointer;">Clear all</span>
-            </div>
-            <div id="notificationsListContainer" style="max-height: 280px; overflow-y: auto;">
-              <!-- Populated dynamically by dashboard.js -->
-            </div>
-          </div>
-        </div>
-
-        <!-- User Profile Pill -->
-        <div class="profile-btn" id="userProfileBtn">
-          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces" alt="Lead Service Manager" class="avatar-img" />
-          <div class="profile-info">
-            <div class="profile-name">Ruwan M.</div>
-            <div class="profile-role">Lead Technician</div>
-          </div>
-          <i data-lucide="chevron-down" style="width: 14px; height: 14px; color: var(--text-muted); margin-left: 0.25rem;"></i>
-        </div>
-      </div>
-    </header>
-
     <!-- =======================================================================
          DASHBOARD BODY CONTENT
          ======================================================================= -->
@@ -136,28 +87,30 @@
       <div id="viewOverview" class="tab-view active">
         <!-- Title & Controls -->
         <section class="dash-control-bar">
-        <div class="dash-heading">
-          <h1>
-            Sawana Mobile Repair Analytics
-            <span id="timelineHeaderBadge" style="font-size: 0.78rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: var(--radius-full); background: rgba(59, 130, 246, 0.15); color: #60a5fa; vertical-align: middle;">Aug 2025 – Aug 2026 (13 Months &bull; Max 24)</span>
-          </h1>
-          <p>Select any brand from the search bar to inspect its monthly repair ruler curve and itemized model breakdown.</p>
-        </div>
+          <div class="dash-heading">
+            <h1>
+              Sawana Mobile Repair Analytics
+              <span id="timelineHeaderBadge" style="font-size: 0.78rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: var(--radius-full); background: rgba(59, 130, 246, 0.15); color: #60a5fa; vertical-align: middle;">Aug 2025 – Aug 2026</span>
+            </h1>
+            <p>Select any brand from the search bar to inspect its monthly repair ruler curve and itemized model breakdown.</p>
+          </div>
 
-        <div class="control-actions">
-
-          <!-- Export Report CTA -->
-          <button class="btn-primary" id="exportReportBtn">
-            <i data-lucide="download" style="width: 16px; height: 16px;"></i>
-            <span>Export Brand Items CSV</span>
-          </button>
-        </div>
-      </section>
+          <div class="control-actions" style="display: flex; align-items: center; gap: 0.65rem;">
+            <button type="button" class="btn-secondary" id="downloadTimelinePdfBtn" style="padding: 0.6rem 1.15rem; font-size: 0.88rem; gap: 0.55rem; display: flex; align-items: center; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; transition: all 0.2s;" title="Download direct A4 Landscape PDF">
+              <i data-lucide="file-down" style="width: 17px; height: 17px; color: var(--color-cyan);"></i>
+              <span>Download PDF</span>
+            </button>
+            <button type="button" class="btn-primary btn-print-a4-pdf" id="printTimelinePdfBtn" style="padding: 0.6rem 1.25rem; font-size: 0.88rem; gap: 0.55rem; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); border: none; display: flex; align-items: center; border-radius: var(--radius-md); font-weight: 700; color: #ffffff; cursor: pointer; box-shadow: 0 4px 18px rgba(168, 85, 247, 0.4); transition: transform 0.2s, box-shadow 0.2s;" title="Print A4 Landscape">
+              <i data-lucide="printer" style="width: 17px; height: 17px;"></i>
+              <span>Print</span>
+            </button>
+          </div>
+        </section>
 
       <!-- =======================================================================
            ROW 1: KEY PERFORMANCE INDICATOR CARDS (4 Columns)
            ======================================================================= -->
-      <section class="kpi-grid" id="overviewKpiGrid">
+      <section class="kpi-grid" id="overviewKpiGrid" style="display: none;">
         <!-- Card 1: Total Repairs -->
         <div class="kpi-card" id="cardTotalRepairs">
           <div class="kpi-top">
@@ -255,19 +208,15 @@
             <div class="brand-filter-dropdown-wrap" id="brandFilterDropdownWrap">
               <button type="button" class="btn-secondary" id="brandFilterDropdownBtn" style="padding: 0.45rem 0.85rem; font-size: 0.82rem; gap: 0.45rem; display: flex; align-items: center;" title="Filter and compare multiple brands">
                 <i data-lucide="filter" style="width: 14px; height: 14px; color: var(--color-cyan);"></i>
-                <span id="brandFilterBtnText">Filter Brands (16)</span>
+                <span id="brandFilterBtnText">Filter Brands</span>
                 <i data-lucide="chevron-down" style="width: 13px; height: 13px; opacity: 0.7;"></i>
               </button>
 
               <div class="brand-filter-popover" id="brandFilterPopover">
                 <div class="filter-popover-header">
-                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-                    <span style="font-weight: 700; font-size: 0.82rem; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.04em;">Select Brands</span>
-                    <span id="filterSelectedCountBadge" class="brand-badge-pill" style="font-size: 0.72rem; padding: 0.15rem 0.5rem; background: rgba(6,182,212,0.15); color: var(--color-cyan); font-weight: 600;">16 Selected</span>
-                  </div>
-                  <div style="display: flex; gap: 0.4rem; margin-top: 0.5rem;">
-                    <button type="button" class="btn-chip-action" id="filterSelectAllBtn" style="flex: 1; padding: 0.25rem 0.4rem; font-size: 0.74rem; text-align: center;">Select All</button>
-                    <button type="button" class="btn-chip-action" id="filterClearAllBtn" style="flex: 1; padding: 0.25rem 0.4rem; font-size: 0.74rem; text-align: center;">Clear All</button>
+                  <div style="display: flex; gap: 0.45rem;">
+                    <button type="button" class="btn-chip-action" id="filterSelectAllBtn" style="flex: 1; padding: 0.35rem 0.5rem; font-size: 0.76rem; text-align: center;">Select All</button>
+                    <button type="button" class="btn-chip-action" id="filterClearAllBtn" style="flex: 1; padding: 0.35rem 0.5rem; font-size: 0.76rem; text-align: center;">Clear All</button>
                   </div>
                   <div style="margin-top: 0.5rem;">
                     <input type="text" id="brandFilterSearchInput" class="editor-input" placeholder="Search brand name..." style="padding: 0.35rem 0.65rem; font-size: 0.78rem; width: 100%; border-radius: var(--radius-sm);" />
@@ -279,18 +228,48 @@
               </div>
             </div>
 
-            <!-- Range Selection (All Months, 12 Months, 6 Months) -->
+            <!-- Range Selection (All Months, 12M, 6M, 3M, Custom Range) -->
             <div class="time-range-group" id="timelineRangeControls" title="Time Horizon">
               <button class="range-btn active" id="rangeBtnAll" data-range="ALL">All</button>
-              <button class="range-btn" id="rangeBtn12" data-range="12">12 Months</button>
-              <button class="range-btn" id="rangeBtn6" data-range="6">6 Months</button>
+              <button class="range-btn" id="rangeBtn12" data-range="12">12M</button>
+              <button class="range-btn" id="rangeBtn6" data-range="6">6M</button>
+              <button class="range-btn" id="rangeBtn3" data-range="3">3M</button>
+              <div class="custom-range-wrapper" style="position: relative; display: inline-block;">
+                <button type="button" class="range-btn" id="rangeBtnCustom" data-range="CUSTOM" style="display: flex; align-items: center; gap: 4px;" title="Select Custom Horizon">
+                  <i data-lucide="calendar" style="width: 12px; height: 12px;"></i>
+                  <span id="rangeBtnCustomText">Custom</span>
+                </button>
+                <div class="custom-range-popover" id="customRangePopover">
+                  <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.6rem; display: flex; align-items: center; justify-content: space-between;">
+                    <span>Custom Horizon</span>
+                    <button type="button" id="closeCustomRangeBtn" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px;" title="Close">
+                      <i data-lucide="x" style="width: 13px; height: 13px;"></i>
+                    </button>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div>
+                      <label style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 3px;">Start Month</label>
+                      <select id="customRangeStartSelect" class="editor-select" style="padding: 0.35rem 0.6rem; font-size: 0.78rem; width: 100%;">
+                        <!-- Populated dynamically -->
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 3px;">End Month</label>
+                      <select id="customRangeEndSelect" class="editor-select" style="padding: 0.35rem 0.6rem; font-size: 0.78rem; width: 100%;">
+                        <!-- Populated dynamically -->
+                      </select>
+                    </div>
+                    <div style="font-size: 0.69rem; color: var(--text-muted); line-height: 1.3;">
+                      Maximum 24-month span supported.
+                    </div>
+                    <div style="display: flex; gap: 0.45rem; margin-top: 0.2rem;">
+                      <button type="button" class="btn-primary" id="applyCustomRangeBtn" style="flex: 1; padding: 0.4rem; font-size: 0.76rem; text-align: center; justify-content: center;">Apply</button>
+                      <button type="button" class="btn-secondary" id="resetCustomRangeBtn" style="padding: 0.4rem 0.6rem; font-size: 0.76rem;">Reset</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-
-            <!-- Print / Download A4 Landscape PDF CTA -->
-            <button type="button" class="btn-primary" id="printTimelinePdfBtn" style="padding: 0.45rem 0.85rem; font-size: 0.82rem; gap: 0.45rem; background: linear-gradient(135deg, #06b6d4, #3b82f6); border: none; display: flex; align-items: center;" title="Print or Download as A4 Landscape PDF">
-              <i data-lucide="printer" style="width: 14px; height: 14px;"></i>
-              <span>Print A4 PDF</span>
-            </button>
           </div>
         </div>
 
@@ -306,11 +285,15 @@
         <div class="chart-card">
           <div class="chart-header">
             <div class="chart-title-group">
-              <h3>Repair Market Share by Brand</h3>
-              <p>Total unit distribution across all 16 brands over the active timeline.</p>
+              <h3>Repair Share by Brand</h3>
+              <p>Total unit distribution across all brands over the active timeline.</p>
             </div>
           </div>
-          <div id="brandShareChart" class="chart-canvas-container"></div>
+          <!-- Two-column split: donut left, 2-column aligned legend right without scrolling -->
+          <div class="brand-share-wrapper" style="display:flex; align-items:center; gap:0.75rem; min-height:280px;">
+            <div id="brandShareChart" class="chart-canvas-container" style="flex:0 0 44%; min-height:270px;"></div>
+            <div id="brandShareLegend" style="flex:1; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:0.35rem 0.55rem; padding:0; overflow:visible;"></div>
+          </div>
         </div>
 
         <!-- Selected Brand Phone Models & Unit Distribution Card -->
@@ -330,60 +313,6 @@
         </div>
       </section>
 
-      <!-- =======================================================================
-           ROW 4: FAULT BAR CHART
-           ======================================================================= -->
-      <section class="chart-card">
-        <div class="chart-header">
-          <div class="chart-title-group">
-            <h3>Fault Volume Distribution</h3>
-            <p>Total repair job count categorized by failure classification.</p>
-          </div>
-        </div>
-        <div id="faultCategoryChart" class="chart-canvas-container" style="min-height: 290px;"></div>
-      </section>
-
-      <!-- =======================================================================
-           ROW 5: BRAND MONTHLY REPAIR ITEMS & MODEL DISTRIBUTION TABLE
-           ======================================================================= -->
-      <section class="table-card">
-        <div class="table-header-bar">
-          <div>
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <h3 id="brandMonthlyTableTitle" style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700;">
-                SAMSUNG — Monthly Repaired Items Breakdown
-              </h3>
-              <span id="tableBrandBadge" class="brand-tag">SAMSUNG</span>
-            </div>
-            <p id="brandMonthlyTableSubtitle" style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">
-              Month-by-month repair item counts and model distribution for SAMSUNG (August 2025 – August 2026).
-            </p>
-          </div>
-        </div>
-
-        <!-- Model Summary Cards for Selected Brand -->
-        <div class="model-summary-cards-row" id="brandModelsSummaryRow">
-          <!-- Populated dynamically by dashboard.js for selected brand -->
-        </div>
-
-        <!-- Month-by-Month Detailed Items Table -->
-        <div class="table-container">
-          <table class="modern-table">
-            <thead>
-              <tr>
-                <th>Timeline Month</th>
-                <th>Total Brand Repairs</th>
-                <th>Repaired Phone Models & Item Counts</th>
-                <th>Peak Repaired Model</th>
-                <th>MoM Trend</th>
-              </tr>
-            </thead>
-            <tbody id="brandMonthlyTableBody">
-              <!-- Populated dynamically by dashboard.js for selected brand -->
-            </tbody>
-          </table>
-        </div>
-      </section>
       </div><!-- /#viewOverview -->
 
       <!-- =======================================================================
@@ -391,14 +320,16 @@
            ======================================================================= -->
       <div id="viewBrands" class="tab-view" style="display: none;">
         <!-- Control Bar for Brands & Models -->
-        <section class="dash-control-bar">
-          <div class="dash-heading" style="flex-direction: row; align-items: center; gap: 1rem; flex-wrap: wrap;">
-            <h1 style="margin: 0;">Brands &amp; Mobile Models Management</h1>
-            <div class="brand-mgmt-search-box" style="margin-left: auto;">
+        <section class="dash-control-bar" style="flex-direction: column; align-items: stretch; gap: 1.1rem;">
+          <div class="dash-heading">
+            <h1 style="margin: 0; font-size: 1.75rem;">Brands &amp; Mobile Models Management</h1>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+            <div class="brand-mgmt-search-box" style="margin-left: 0; max-width: 360px; width: 100%;">
               <i data-lucide="search" style="width: 15px; height: 15px; color: var(--text-muted);"></i>
               <input type="text" id="brandManagerSearchInput" placeholder="Filter brand or model..." autocomplete="off">
             </div>
-            <button class="btn-primary" id="openAddBrandModalBtn" style="flex-shrink: 0;">
+            <button class="btn-primary" id="openAddBrandModalBtn" style="margin-left: auto; flex-shrink: 0; padding: 0.65rem 1.25rem;">
               <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
               <span>Add New Brand</span>
             </button>
@@ -432,13 +363,13 @@
             
             <div class="settings-item-row">
               <div class="settings-item-info">
-                <div class="settings-item-title">Edit Brand Name (Allow Brand Renaming)</div>
+                <div class="settings-item-title">Edit Brand Name &amp; Color (Allow Customization &amp; Deletion)</div>
                 <div class="settings-item-desc">
-                  When enabled, an edit (pencil) icon appears next to each mobile brand in the Brands & Models hub allowing you to rename existing brands.
+                  When enabled, edit (pencil) and permanent delete (trash) icons appear next to each mobile brand in the Brands &amp; Models hub, allowing you to edit name, customize theme color, or delete brands.
                 </div>
               </div>
               <div class="settings-item-action">
-                <label class="switch" title="Toggle Brand Renaming">
+                <label class="switch" title="Toggle Brand Renaming &amp; Color Customization">
                   <input type="checkbox" id="settingAllowBrandRename">
                   <span class="slider round"></span>
                 </label>
@@ -454,7 +385,7 @@
               </div>
               <div class="settings-item-action">
                 <label class="switch" title="Toggle Overview Metric Cards">
-                  <input type="checkbox" id="settingShowKpiCards" checked>
+                  <input type="checkbox" id="settingShowKpiCards">
                   <span class="slider round"></span>
                 </label>
               </div>
@@ -518,7 +449,7 @@
           <div class="editor-field" style="flex: 1;">
             <label for="editorModelSelect">
               <i data-lucide="layers" style="width: 14px; height: 14px; vertical-align: middle;"></i>
-              Phone Model (Select Model or Leave Empty for General Brand Total)
+              Phone Model
             </label>
             <select id="editorModelSelect" class="editor-select">
               <!-- Default: -- General Brand Total (No Model Selected) -- -->
@@ -530,33 +461,25 @@
         <div>
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem;">
             <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;" id="editorMonthsGridLabel">
-              Monthly Repair Counts (Aug 2025 – Aug 2026)
+              Monthly Repair Counts
             </label>
             <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
-              <button type="button" class="btn-secondary" id="editorAddMonthBtn" style="padding: 0.35rem 0.75rem; font-size: 0.78rem; border-color: rgba(6,182,212,0.4); color: var(--color-cyan);">
-                <i data-lucide="plus-circle" style="width: 13px; height: 13px;"></i>
-                <span id="editorAddMonthBtnText">+ Add Next Month (Sep 2026)</span>
-              </button>
-              <span style="font-size: 0.76rem; color: var(--text-muted);">Y-Axis range: 0 – 20</span>
               <span id="editorTotalPreview" style="font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 700; color: var(--color-cyan);">
                 0 Units Total
               </span>
             </div>
           </div>
           <div class="editor-months-grid" id="editorMonthsGrid">
-            <!-- Dynamic Month Input Boxes -->
+            <!-- Dynamic Month Input Boxes with + Next Tile and Trash Delete -->
           </div>
         </div>
       </div>
 
-      <div class="modal-footer">
-        <button class="btn-primary" id="saveDataEditorBtn">
+      <div class="modal-footer" style="display: flex; align-items: center; justify-content: flex-end; gap: 0.85rem;">
+        <button class="btn-secondary" id="cancelDataEditorBtn" type="button">Cancel</button>
+        <button class="btn-primary" id="saveDataEditorBtn" type="button">
           <i data-lucide="check" style="width: 16px; height: 16px;"></i>
-          <span>Save & Apply Changes</span>
-        </button>
-        <button class="btn-secondary" id="cancelDataEditorBtn">Cancel</button>
-        <button class="btn-chip-action" id="resetDataDefaultsBtn" style="margin-left: auto; color: var(--color-rose); border-color: rgba(244,63,94,0.3);">
-          Reset to System Defaults
+          <span>Save &amp; Apply Changes</span>
         </button>
       </div>
     </div>
@@ -608,65 +531,56 @@
   </div>
 
   <!-- =========================================================================
-       DEDICATED A4 LANDSCAPE PRINT / PDF REPORT CONTAINER
-       (100% Vector Print Layout - Formatted for 297mm x 210mm Landscape)
+       EDIT MOBILE BRAND (NAME & COLOR) MODAL
        ========================================================================= -->
-  <div id="printReportContainer" class="print-report-container">
-    <!-- Print Header -->
-    <div class="print-header">
-      <div class="print-header-left">
-        <div class="print-brand-name">SAWANA MOBILE CARE</div>
-        <div class="print-report-title">Monthly Mobile Repair Analytics &amp; Brand Performance Report</div>
+  <div class="modal-overlay" id="editBrandModal">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>
+          <i data-lucide="edit-3" style="width: 20px; height: 20px; color: var(--color-primary);"></i>
+          <span>Edit Brand Details</span>
+        </h3>
+        <button class="modal-close-btn" id="closeEditBrandModalBtn" title="Close" aria-label="Close">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
       </div>
-      <div class="print-header-right">
-        <div class="print-meta-line"><strong>Generated:</strong> <span id="printMetaDate">-</span></div>
-        <div class="print-meta-line"><strong>Timeline Horizon:</strong> <span id="printMetaTimeline">-</span></div>
-        <div class="print-meta-line"><strong>Brands Included:</strong> <span id="printMetaBrands">-</span></div>
+      <div class="modal-body">
+        <input type="hidden" id="editBrandKeyInput">
+        <div style="display: flex; flex-direction: column; gap: 1.1rem;">
+          <div class="editor-field">
+            <label for="editBrandNameInput">
+              <i data-lucide="smartphone" style="width: 14px; height: 14px; vertical-align: middle;"></i>
+              Mobile Brand Name
+            </label>
+            <input type="text" id="editBrandNameInput" class="editor-input" placeholder="e.g. Google Pixel / Nothing / Realme..." autocomplete="off">
+          </div>
+          <div class="editor-field">
+            <label for="editBrandColorInput">
+              <i data-lucide="palette" style="width: 14px; height: 14px; vertical-align: middle;"></i>
+              Brand Color Theme
+            </label>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <input type="color" id="editBrandColorInput" value="#6366f1" style="width: 44px; height: 38px; border: none; border-radius: var(--radius-sm); cursor: pointer; background: transparent;">
+              <span id="editBrandColorHex" style="font-family: monospace; font-size: 0.85rem; color: var(--text-secondary);">#6366f1</span>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-
-    <!-- Summary KPI Strip -->
-    <div class="print-kpi-strip">
-      <div class="print-kpi-box">
-        <span class="print-kpi-label">TOTAL REPAIRS LOGGED</span>
-        <span class="print-kpi-number" id="printKpiTotalRepairs">0 Units</span>
+      <div class="modal-footer">
+        <button class="btn-primary" id="saveEditBrandBtn">
+          <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+          <span>Save Changes</span>
+        </button>
+        <button class="btn-secondary" id="cancelEditBrandBtn">Cancel</button>
       </div>
-      <div class="print-kpi-box">
-        <span class="print-kpi-label">BRANDS ANALYZED</span>
-        <span class="print-kpi-number" id="printKpiActiveBrands">0 Brands</span>
-      </div>
-      <div class="print-kpi-box">
-        <span class="print-kpi-label">PEAK REPAIR MONTH</span>
-        <span class="print-kpi-number" id="printKpiPeakMonth">-</span>
-      </div>
-      <div class="print-kpi-box">
-        <span class="print-kpi-label">MONTHLY AVERAGE</span>
-        <span class="print-kpi-number" id="printKpiMonthlyAvg">0 /mo</span>
-      </div>
-    </div>
-
-    <!-- Chart Block -->
-    <div class="print-chart-block">
-      <div class="print-section-heading" id="printChartHeading">Monthly Repair Volume Trend Comparison</div>
-      <div id="printChartCanvas" style="min-height: 250px; width: 100%;"></div>
-    </div>
-
-    <!-- Itemized Monthly Table -->
-    <div class="print-table-block">
-      <div class="print-section-heading">Itemized Monthly Repair Counts per Brand</div>
-      <div class="print-table-scroll">
-        <table class="print-data-table" id="printDataTable">
-          <!-- Dynamically populated -->
-        </table>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="print-footer">
-      <span>Sawana Mobile Care Service Management Platform &bull; Official Report</span>
-      <span>Page 1 of 1 &bull; A4 Landscape (297mm &times; 210mm)</span>
     </div>
   </div>
+
+  <!-- =========================================================================
+       DEDICATED A4 LANDSCAPE PRINT / PDF REPORT CONTAINER
+       (Exact layout matching user's reference sample - 297mm x 210mm Landscape)
+       ========================================================================= -->
+  <div id="printReportContainer" class="print-report-container"></div>
 
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container"></div>
@@ -674,6 +588,8 @@
   <!-- Firebase App & Firestore SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <!-- jsPDF for Direct A4 Landscape PDF Download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="js/firebase.js"></script>
   <script src="js/data.js"></script>
   <script src="js/charts.js"></script>
